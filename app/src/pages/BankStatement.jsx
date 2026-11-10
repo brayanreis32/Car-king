@@ -14,6 +14,7 @@ export default function BankStatement({ accounts, payables, receivables, onChang
   const [accountId, setAccountId] = useState(bankAccounts[0]?.account_id || accounts[0]?.account_id || '')
   const [view, setView] = useState('pending')
   const [creatingAccount, setCreatingAccount] = useState(accounts.length === 0)
+  const [editingAccount, setEditingAccount] = useState(null)
   const [parsed, setParsed] = useState(null)
   const [mapping, setMapping] = useState(null)
   const [resolving, setResolving] = useState(null)
@@ -92,7 +93,10 @@ export default function BankStatement({ accounts, payables, receivables, onChang
               <Select value={accountId} onChange={setAccountId} options={accounts.map((a) => [a.account_id, a.name])} />
             </Field>
             <Field label="Saldo no sistema">
-              <div style={{ fontSize: 20, fontWeight: 600, paddingTop: 6 }} className="num">{money(account?.balance, true)}</div>
+              <div className="row" style={{ flexWrap: 'nowrap', paddingTop: 2 }}>
+                <span style={{ fontSize: 20, fontWeight: 600 }} className={`num ${Number(account?.balance) < 0 ? 'neg' : ''}`}>{money(account?.balance, true)}</span>
+                {can('finance', 'edit') && account && <button className="btn-sm" onClick={() => setEditingAccount(account)}>Editar conta</button>}
+              </div>
             </Field>
           </div>
         )}
@@ -147,6 +151,7 @@ export default function BankStatement({ accounts, payables, receivables, onChang
       </>}
 
       {creatingAccount && <AccountModal onClose={() => setCreatingAccount(false)} onDone={(id) => { setCreatingAccount(false); setAccountId(id); onChange() }} />}
+      {editingAccount && <AccountModal account={editingAccount} onClose={() => setEditingAccount(null)} onDone={() => { setEditingAccount(null); onChange() }} />}
       {mapping && <MappingModal info={mapping} onClose={() => setMapping(null)} onDone={(rows) => { setMapping(null); setParsed({ rows, fileName: mapping.fileName, format: 'CSV' }) }} />}
       {parsed && <ImportPreview parsed={parsed} account={account} onClose={() => setParsed(null)} onDone={() => { setParsed(null); setView('pending'); refresh() }} />}
       {resolving && <ResolveModal line={resolving} payables={payables} receivables={receivables} onClose={() => setResolving(null)} onDone={() => { setResolving(null); refresh() }} />}
@@ -154,19 +159,26 @@ export default function BankStatement({ accounts, payables, receivables, onChang
   )
 }
 
-function AccountModal({ onClose, onDone }) {
+export function AccountModal({ account, onClose, onDone }) {
+  const editing = Boolean(account)
+  const full = useLoad(() => (editing ? q(supabase.from('financial_accounts').select('*').eq('id', account.account_id).single()) : Promise.resolve(null)), [account?.account_id])
   const [f, setF] = useState({ name: '', institution: '', last4: '', opening_balance: '', opening_date: today() })
+  const [loaded, setLoaded] = useState(!editing)
+  if (editing && !loaded && full.data) {
+    setF({ name: full.data.name, institution: full.data.institution || '', last4: full.data.last4 || '', opening_balance: full.data.opening_balance, opening_date: full.data.opening_date })
+    setLoaded(true)
+  }
   const set = (k) => (v) => setF((s) => ({ ...s, [k]: v }))
   const [run, busy] = useAction()
   const save = async () => {
-    const r = await run(() => q(supabase.from('financial_accounts').insert({
-      name: f.name, account_type: 'bank', institution: f.institution || null, last4: f.last4 || null,
-      opening_balance: toNum(f.opening_balance) ?? 0, opening_date: f.opening_date,
-    }).select('id').single()), 'Conta cadastrada')
+    const row = { name: f.name, institution: f.institution || null, last4: f.last4 || null, opening_balance: toNum(f.opening_balance) ?? 0, opening_date: f.opening_date }
+    const r = await run(() => editing
+      ? q(supabase.from('financial_accounts').update(row).eq('id', account.account_id).select('id').single())
+      : q(supabase.from('financial_accounts').insert({ ...row, account_type: 'bank' }).select('id').single()), editing ? 'Conta atualizada' : 'Conta cadastrada')
     onDone(r.id)
   }
   return (
-    <Modal title="Nova conta bancária" onClose={onClose} footer={<><button onClick={onClose}>Cancelar</button><button className="btn-primary" onClick={save} disabled={busy || !f.name || (f.last4 && !/^\d{4}$/.test(f.last4))}>Salvar</button></>}>
+    <Modal title={editing ? 'Editar conta' : 'Nova conta bancária'} onClose={onClose} footer={<><button onClick={onClose}>Cancelar</button><button className="btn-primary" onClick={save} disabled={busy || !f.name || (f.last4 && !/^\d{4}$/.test(f.last4))}>Salvar</button></>}>
       <div className="stack">
         <div className="form-grid">
           <Field label="Nome *"><input value={f.name} onChange={(e) => set('name')(e.target.value)} placeholder="Bank of America - Operating" /></Field>

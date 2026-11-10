@@ -5,6 +5,7 @@ import { Badge, Empty, ErrorBox, Field, Kpi, Modal, MoneyInput, Select, Spinner,
 import { FilePick, uploadAll } from '../components/attachments.jsx'
 import { useApp } from '../App.jsx'
 import BankStatement from './BankStatement.jsx'
+import FinanceHistory from './FinanceHistory.jsx'
 
 export default function Finance() {
   const [tab, setTab] = useState('pay')
@@ -31,8 +32,9 @@ export default function Finance() {
         <Kpi label="A receber" value={money(sum(receivables))} hint={`${receivables.length} conta(s)`} />
         <Kpi label="Saldo nas contas" value={money(accounts.reduce((s, a) => s + Number(a.balance), 0))} hint={accounts.map((a) => `${a.name}: ${money(a.balance)}`).join(' · ') || 'nenhuma conta cadastrada'} />
       </div>
-      <Tabs tabs={[['pay', `A pagar (${payables.length})`], ['receive', `A receber (${receivables.length})`], ['bank', 'Extrato bancário']]} active={tab} onChange={setTab} />
-      {tab === 'bank' ? <BankStatement accounts={accounts} payables={payables} receivables={receivables} onChange={reload} /> : (
+      <Tabs tabs={[['pay', `A pagar (${payables.length})`], ['paid', 'Pagas'], ['receive', `A receber (${receivables.length})`], ['received', 'Recebidas'], ['bank', 'Extrato bancário']]} active={tab} onChange={setTab} />
+      {tab === 'paid' ? <FinanceHistory direction="out" /> : tab === 'received' ? <FinanceHistory direction="in" /> :
+       tab === 'bank' ? <BankStatement accounts={accounts} payables={payables} receivables={receivables} onChange={reload} /> : (
       <div className="card pad-0">
         {rows.length === 0 ? <Empty title="Nada em aberto" /> : (
           <div className="list">
