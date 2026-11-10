@@ -1,6 +1,9 @@
 # Identidade visual — CAR KING Auto Sales
 
-A logo oficial está em `carking-logo.png` (o app usa uma versão recortada e otimizada em `app/public/logo.webp`).
+Logos:
+
+- `carking-logo.png`: original, fundo preto (prévia de link, materiais escuros).
+- `carking-logo-fundo-claro.png`: sem fundo, com o prateado convertido em grafite para aparecer no branco. É a usada no app (`app/public/logo.webp`).
 
 Arquivos previstos:
 

@@ -68,9 +68,9 @@ h3 { font-size: 14px; }
   position: sticky; top: 0; height: 100vh; display: flex; flex-direction: column; padding: 20px 12px;
 }
 .brand { padding: 0 0 20px; }
-.logo-banner { background: #000; border-radius: 10px; padding: 10px 12px; line-height: 0; }
+.logo-banner { line-height: 0; padding: 4px 6px 0; }
 .logo-banner img { width: 100%; height: auto; display: block; }
-.logo-banner.big { border-radius: 14px; padding: 22px 26px; }
+.logo-banner.big { padding: 0 24px; margin-bottom: 8px; }
 .brand-name { font-family: 'Montserrat', var(--font); font-style: italic; font-weight: 800; font-size: 18px; letter-spacing: .3px; line-height: 1.1; }
 .brand-name .car { color: #55585E; }
 .brand-name .king { color: var(--gold); }
