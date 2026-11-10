@@ -324,6 +324,28 @@ select pg_temp.must_fail('mecânico não lança venda',
 select pg_temp.must_fail('mecânico não se promove',
   $q$update profiles set role_id = (select id from roles where code = 'super_admin') where id = auth.uid()$q$);
 
+-- Administrador: gerencia funcionários, mas não mexe no acesso do desenvolvedor
+reset role;
+insert into auth.users (id, email) values ('00000000-0000-0000-0000-000000000004', 'admin@carking.test');
+insert into profiles (id, company_id, role_id, full_name)
+select '00000000-0000-0000-0000-000000000004', c.id, r.id, 'Ana Admin'
+from companies c join roles r on r.company_id = c.id and r.code = 'admin' where c.name = 'Car King Auto Sales';
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000004', false) \g /dev/null
+set role authenticated;
+select pg_temp.eq('perfil do dono se chama Desenvolvedor',
+  (select r.name from profiles p join roles r on r.id = p.role_id where p.full_name = 'Owner'), 'Desenvolvedor (acesso total)');
+update profiles set role_id = (select id from roles where code = 'seller') where full_name = 'Mike Mechanic';
+select pg_temp.eq('admin muda perfil do mecânico para vendedor',
+  (select r.code from profiles p join roles r on r.id = p.role_id where p.full_name = 'Mike Mechanic'), 'seller');
+select pg_temp.must_fail('admin não desativa o desenvolvedor',
+  $q$update profiles set is_active = false where full_name = 'Owner'$q$);
+select pg_temp.must_fail('admin não rebaixa o desenvolvedor',
+  $q$update profiles set role_id = (select id from roles where code = 'seller') where full_name = 'Owner'$q$);
+select pg_temp.must_fail('admin não dá acesso total a ninguém',
+  $q$update profiles set role_id = (select id from roles where code = 'super_admin') where full_name = 'Mike Mechanic'$q$);
+select pg_temp.must_fail('admin não se desativa',
+  $q$update profiles set is_active = false where id = auth.uid()$q$);
+
 reset role;
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000003', false) \g /dev/null
 set role authenticated;

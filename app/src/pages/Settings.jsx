@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { money, q, supabase, toNum } from '../lib.js'
 import { ErrorBox, Field, Icon, Modal, MoneyInput, Spinner, useAction, useLoad } from '../components/ui.jsx'
 import { useApp } from '../App.jsx'
@@ -8,6 +9,12 @@ export default function Settings() {
   return (
     <div className="stack">
       <div className="page-head"><div><h1>Configurações</h1><div className="muted small">{company.name} · {profile.roles?.name}</div></div></div>
+      {can('employees', 'view') && (
+        <Link to="/funcionarios" className="card row between" style={{ textDecoration: 'none' }}>
+          <div><h2>Funcionários e logins</h2><div className="muted small">Criar acessos para administrador e vendedores</div></div>
+          <span className="btn btn-sm">Abrir</span>
+        </Link>
+      )}
       <Goals company={company} canEdit={can('settings', 'edit')} onSaved={reloadCompany} />
       <Sources canEdit={can('auction', 'edit')} />
     </div>

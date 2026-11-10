@@ -10,6 +10,7 @@ import Vehicles from './pages/Vehicles.jsx'
 import VehicleDetail from './pages/VehicleDetail.jsx'
 import Settings from './pages/Settings.jsx'
 import Finance from './pages/Finance.jsx'
+import Employees from './pages/Employees.jsx'
 
 const AppCtx = createContext(null)
 export const useApp = () => useContext(AppCtx)
@@ -71,6 +72,7 @@ const MENU = [
   { to: '/leiloes', icon: 'gavel', text: 'Auction Analyzer', short: 'Leilões', module: 'auction' },
   { to: '/veiculos', icon: 'car', text: 'Veículos', short: 'Veículos', module: 'vehicles' },
   { to: '/financeiro', icon: 'money', text: 'Financeiro', short: 'Financeiro', module: 'finance' },
+  { to: '/funcionarios', icon: 'users', text: 'Funcionários', short: 'Equipe', module: 'employees', desktopOnly: true },
   { to: '/configuracoes', icon: 'settings', text: 'Configurações', short: 'Ajustes', module: 'settings' },
 ]
 
@@ -101,12 +103,13 @@ function Shell() {
           <Route path="/veiculos" element={<Vehicles />} />
           <Route path="/veiculos/:id" element={<VehicleDetail />} />
           <Route path="/financeiro" element={<Finance />} />
+          <Route path="/funcionarios" element={<Employees />} />
           <Route path="/configuracoes" element={<Settings />} />
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
       </main>
       <nav className="bottom-nav">
-        {menu.map((m) => (
+        {menu.filter((m) => !m.desktopOnly).map((m) => (
           <NavLink key={m.to} to={m.to} end={m.end}><Icon name={m.icon} />{m.short}</NavLink>
         ))}
       </nav>
