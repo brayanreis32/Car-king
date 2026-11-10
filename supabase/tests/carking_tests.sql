@@ -332,17 +332,24 @@ select '00000000-0000-0000-0000-000000000004', c.id, r.id, 'Ana Admin'
 from companies c join roles r on r.company_id = c.id and r.code = 'admin' where c.name = 'Car King Auto Sales';
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000004', false) \g /dev/null
 set role authenticated;
-select pg_temp.eq('perfil do dono se chama Desenvolvedor',
-  (select r.name from profiles p join roles r on r.id = p.role_id where p.full_name = 'Owner'), 'Desenvolvedor (acesso total)');
+select pg_temp.eq('admin não vê o login do desenvolvedor', (select count(*) from profiles where full_name = 'Owner'), 0::bigint);
+select pg_temp.eq('admin não vê o perfil Desenvolvedor', (select count(*) from roles where code = 'super_admin'), 0::bigint);
+select pg_temp.eq('admin vê os demais perfis', (select count(*) from roles), 7::bigint);
 update profiles set role_id = (select id from roles where code = 'seller') where full_name = 'Mike Mechanic';
 select pg_temp.eq('admin muda perfil do mecânico para vendedor',
   (select r.code from profiles p join roles r on r.id = p.role_id where p.full_name = 'Mike Mechanic'), 'seller');
-select pg_temp.must_fail('admin não desativa o desenvolvedor',
-  $q$update profiles set is_active = false where full_name = 'Owner'$q$);
-select pg_temp.must_fail('admin não rebaixa o desenvolvedor',
-  $q$update profiles set role_id = (select id from roles where code = 'seller') where full_name = 'Owner'$q$);
-select pg_temp.must_fail('admin não dá acesso total a ninguém',
-  $q$update profiles set role_id = (select id from roles where code = 'super_admin') where full_name = 'Mike Mechanic'$q$);
+update profiles set is_active = false where id = '00000000-0000-0000-0000-000000000001';
+reset role;
+select pg_temp.eq('desenvolvedor continua ativo após tentativa do admin',
+  (select is_active from profiles where id = '00000000-0000-0000-0000-000000000001'), true);
+select pg_temp.eq('perfil do dono se chama Desenvolvedor',
+  (select r.name from profiles p join roles r on r.id = p.role_id where p.full_name = 'Owner'), 'Desenvolvedor (acesso total)');
+-- mesmo sabendo o id do perfil Desenvolvedor, o admin não consegue atribuí-lo
+select set_config('test.dev_role', (select r.id::text from roles r join companies c on c.id = r.company_id where r.code = 'super_admin' and c.name = 'Car King Auto Sales'), false) \g /dev/null
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000004', false) \g /dev/null
+set role authenticated;
+select pg_temp.must_fail('admin não atribui o perfil Desenvolvedor (mesmo com o id)',
+  $q$update profiles set role_id = current_setting('test.dev_role')::uuid where full_name = 'Mike Mechanic'$q$);
 select pg_temp.must_fail('admin não se desativa',
   $q$update profiles set is_active = false where id = auth.uid()$q$);
 
