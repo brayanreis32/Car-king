@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { date, label, money, options, pct, q, signedMoney, supabase, toNum, VEHICLE_STATUS_TONE, vehicleName } from '../lib.js'
 import { Badge, ErrorBox, Field, Icon, Kpi, Modal, MoneyInput, Select, Spinner, Tabs, useAction, useLoad } from '../components/ui.jsx'
 import { Documents, Expenses, Labor, Parts, Sale, Transport } from './VehicleTabs.jsx'
@@ -10,7 +10,8 @@ const MANUAL_STATUS = ['purchased', 'awaiting_pickup', 'in_transit', 'received',
 
 export default function VehicleDetail() {
   const { id } = useParams()
-  const [tab, setTab] = useState('summary')
+  const [params] = useSearchParams()
+  const [tab, setTab] = useState(params.get('tab') || 'summary')
   const [editingPrices, setEditingPrices] = useState(false)
   const [run, busy] = useAction()
 

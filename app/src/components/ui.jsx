@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 
 // ---------- Ícones (traço simples, sem dependências) ----------
 const paths = {
@@ -42,14 +43,17 @@ export const Empty = ({ title, children }) => (
 )
 export const ErrorBox = ({ error }) => (error ? <div className="alert-box error">{String(error.message || error)}</div> : null)
 
-export function Kpi({ label, value, hint, tone, highlight }) {
-  return (
-    <div className={`kpi ${highlight ? 'highlight' : ''}`}>
-      <div className="label">{label}</div>
+export function Kpi({ label, value, hint, tone, highlight, to }) {
+  const body = (
+    <>
+      <div className="label">{label}{to && <span className="kpi-go" aria-hidden="true">›</span>}</div>
       <div className={`value ${tone || ''}`}>{value}</div>
       {hint && <div className="hint">{hint}</div>}
-    </div>
+    </>
   )
+  return to
+    ? <Link to={to} className={`kpi kpi-link ${highlight ? 'highlight' : ''}`}>{body}</Link>
+    : <div className={`kpi ${highlight ? 'highlight' : ''}`}>{body}</div>
 }
 
 export function Field({ label, children, span, full }) {

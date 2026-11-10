@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { date, money, q, rpc, supabase, toNum, today } from '../lib.js'
 import { Badge, Empty, ErrorBox, Field, Kpi, Modal, MoneyInput, Select, Spinner, Tabs, useAction, useLoad } from '../components/ui.jsx'
 import { FilePick, uploadAll } from '../components/attachments.jsx'
@@ -8,7 +8,9 @@ import BankStatement from './BankStatement.jsx'
 import FinanceHistory from './FinanceHistory.jsx'
 
 export default function Finance() {
-  const [tab, setTab] = useState('pay')
+  const [params] = useSearchParams()
+  const [tab, setTab] = useState(params.get('tab') || 'pay')
+  const [onlyOverdue, setOnlyOverdue] = useState(params.get('vencidas') === '1')
   const { data, error, loading, reload } = useLoad(async () => {
     const [payables, receivables, accounts] = await Promise.all([
       q(supabase.from('accounts_payable').select('*, suppliers(name)').in('status', ['open', 'partial']).order('due_date', { nullsFirst: false })),
@@ -22,7 +24,8 @@ export default function Finance() {
   if (error) return <ErrorBox error={error} />
   const { payables, receivables, accounts } = data
   const sum = (rows) => rows.reduce((s, r) => s + Number(r.balance), 0)
-  const rows = tab === 'pay' ? payables : receivables
+  const overdue = (r) => r.due_date && r.due_date < today()
+  const rows = (tab === 'pay' ? payables : receivables).filter((r) => !onlyOverdue || overdue(r))
 
   return (
     <div className="stack">
@@ -36,7 +39,12 @@ export default function Finance() {
       {tab === 'paid' ? <FinanceHistory direction="out" /> : tab === 'received' ? <FinanceHistory direction="in" /> :
        tab === 'bank' ? <BankStatement accounts={accounts} payables={payables} receivables={receivables} onChange={reload} /> : (
       <div className="card pad-0">
-        {rows.length === 0 ? <Empty title="Nada em aberto" /> : (
+        {(tab === 'pay' || tab === 'receive') && (
+          <div className="row" style={{ padding: '12px 16px 0' }}>
+            <label className="check small"><input type="checkbox" checked={onlyOverdue} onChange={(e) => setOnlyOverdue(e.target.checked)} /> Mostrar só as vencidas</label>
+          </div>
+        )}
+        {rows.length === 0 ? <Empty title={onlyOverdue ? 'Nenhuma conta vencida' : 'Nada em aberto'} /> : (
           <div className="list">
             {rows.map((r) => {
               const late = r.due_date && r.due_date < today()

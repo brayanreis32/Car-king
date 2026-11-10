@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { label, money, options, q, rpc, supabase, toNum, today, VEHICLE_STATUS_TONE, vehicleName } from '../lib.js'
 import { Badge, Empty, ErrorBox, Field, Icon, Modal, MoneyInput, Select, Spinner, Tabs, useAction, useLoad } from '../components/ui.jsx'
 import { useApp } from '../App.jsx'
@@ -13,7 +13,8 @@ const GROUPS = {
 
 export default function Vehicles() {
   const nav = useNavigate()
-  const [tab, setTab] = useState('prep')
+  const [params] = useSearchParams()
+  const [tab, setTab] = useState(['prep', 'sale', 'sold'].includes(params.get('tab')) ? params.get('tab') : 'prep')
   const [adding, setAdding] = useState(false)
   const { can } = useApp()
   const { data, error, loading } = useLoad(async () => {
