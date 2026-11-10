@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { callFunction, date, label, money, options, OPP_STATUS_TONE, q, supabase, toNum, vehicleName } from '../lib.js'
 import { Badge, Empty, ErrorBox, Field, Icon, Modal, MoneyInput, Select, Spinner, Tabs, useAction, useLoad, useToast } from '../components/ui.jsx'
+import { requestPhotoPull } from '../components/photos.jsx'
 
 const DECISION_TONE = { viable: 'success', above_limit: 'warning', not_viable: 'error' }
 const OPEN = ['analyzing', 'awaiting_inspection', 'awaiting_quote', 'approved', 'bid_placed']
@@ -131,7 +132,7 @@ export function OpportunityForm({ initial, onClose, onSaved }) {
         notes: [s.notes, d.notes].filter(Boolean).join('\n'),
       }))
       setDamages(d.damages || [])
-      setImported({ site: d.site, damages: (d.damages || []).length, titleUnknown: !d.title_status || d.title_status === 'unknown' })
+      setImported({ site: d.site, damages: (d.damages || []).length, photos: (d.images || []).length, titleUnknown: !d.title_status || d.title_status === 'unknown' })
       toast('Dados do anúncio importados. Confira antes de salvar.')
     } catch (e) {
       toast(e.message, 'error')
@@ -176,6 +177,7 @@ export function OpportunityForm({ initial, onClose, onSaved }) {
       }
       return r
     }, 'Carro salvo')
+    if (!initial && imported?.photos) requestPhotoPull(saved.id)
     onSaved(saved.id)
   }
 
@@ -192,7 +194,7 @@ export function OpportunityForm({ initial, onClose, onSaved }) {
             </div>
             {imported && (
               <div className="alert-box success small">
-                Dados preenchidos{imported.damages ? ` · ${imported.damages} item(ns) do relatório de condição viram danos (informe o custo depois)` : ''}. Confira e complete os valores de mercado.
+                Dados preenchidos{imported.damages ? ` · ${imported.damages} item(ns) do relatório de condição viram danos (informe o custo depois)` : ''}{imported.photos ? ` · ${imported.photos} foto(s) serão baixadas ao salvar` : ''}. Confira e complete os valores de mercado.
                 {imported.titleUnknown && <div style={{ marginTop: 4 }}>O anúncio não informa o tipo de título: confirme com o leilão.</div>}
               </div>
             )}

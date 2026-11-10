@@ -2,7 +2,7 @@
 // visualizador em tela cheia e compartilhamento (WhatsApp etc.).
 // Arquivos no bucket privado "vehicle-media" em {empresa}/vehicle/{id}/photos/.
 import { useEffect, useRef, useState } from 'react'
-import { q, supabase } from '../lib.js'
+import { callFunction, q, supabase } from '../lib.js'
 import { Empty, Icon, Spinner, useAction, useLoad, useToast } from './ui.jsx'
 import { useApp } from '../App.jsx'
 
@@ -209,4 +209,71 @@ export async function loadCovers() {
   const list = Object.values(first)
   const urls = await signedUrls(list)
   return Object.fromEntries(list.map((r) => [r.entity_id, urls[r.id]]))
+}
+
+// ---------------------------------------------------------------------------
+// Fotos do leilão (baixadas do anúncio). Ficam separadas das fotos de venda:
+// mostram o carro como foi comprado e não aparecem no site.
+// ---------------------------------------------------------------------------
+const pullKey = (id) => `carking:pull-photos:${id}`
+export const requestPhotoPull = (id) => { try { sessionStorage.setItem(pullKey(id), '1') } catch { /* opcional */ } }
+
+export function AuctionPhotos({ opportunityId, listingUrl, vehicle, title = 'Fotos do leilão', canPull = true }) {
+  const { can } = useApp()
+  const toast = useToast()
+  const [viewer, setViewer] = useState(null)
+  const [pulling, setPulling] = useState(false)
+  const { data, loading, reload } = useLoad(async () => {
+    const rows = await q(supabase.from('attachments').select('*').eq('entity_type', 'auction_opportunity')
+      .eq('entity_id', opportunityId).eq('kind', 'photo').order('sort_order').order('created_at'))
+    return { rows, urls: await signedUrls(rows) }
+  }, [opportunityId])
+
+  const pull = async () => {
+    setPulling(true)
+    try {
+      const r = await callFunction('import-listing', { save_photos: opportunityId })
+      if (r.error) throw new Error(r.error)
+      if (r.already) toast('As fotos do leilão já estavam salvas.')
+      else if (!r.found) toast('O anúncio não tem fotos para baixar.', 'error')
+      else toast(`${r.saved} de ${r.found} foto(s) do leilão salvas`)
+      reload()
+    } catch (e) { toast(e.message, 'error') } finally { setPulling(false) }
+  }
+
+  // logo depois de importar pelo link, baixa automaticamente
+  useEffect(() => {
+    let flag = null
+    try { flag = sessionStorage.getItem(pullKey(opportunityId)); sessionStorage.removeItem(pullKey(opportunityId)) } catch { /* opcional */ }
+    if (flag && listingUrl) pull()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [opportunityId])
+
+  const rows = data?.rows || []
+  if (!rows.length && !listingUrl && !pulling) return null
+  return (
+    <div className="card stack">
+      <div className="row between">
+        <div>
+          <h2>{title}</h2>
+          <div className="muted small">{pulling ? 'Baixando as fotos do anúncio… pode levar alguns segundos.' : rows.length ? `${rows.length} foto(s) do anúncio. Não aparecem no site.` : 'Ainda não baixadas.'}</div>
+        </div>
+        {canPull && listingUrl && !rows.length && can('vehicles', 'create') && (
+          <button className="btn-sm" onClick={pull} disabled={pulling}>{pulling ? 'Baixando…' : 'Puxar fotos do anúncio'}</button>
+        )}
+      </div>
+      {loading && !data ? <Spinner /> : rows.length > 0 && (
+        <div className="photo-grid">
+          {rows.map((p, i) => (
+            <button key={p.id} type="button" className="photo-tile" onClick={() => setViewer(i)}>
+              <img src={data.urls[p.id]} alt={`Foto do leilão ${i + 1}`} loading="lazy" />
+            </button>
+          ))}
+        </div>
+      )}
+      {viewer !== null && rows[viewer] && (
+        <Viewer rows={rows} urls={data.urls} index={viewer} onIndex={setViewer} onClose={() => setViewer(null)} vehicle={vehicle} />
+      )}
+    </div>
+  )
 }

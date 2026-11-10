@@ -5,6 +5,7 @@
 //
 // POST { url }  -> importa do anúncio (Capital Auto Auction; outros sites: VIN + título)
 // POST { vin }  -> decodifica o VIN (ano, marca, modelo, versão, combustível, câmbio)
+// POST { save_photos: <id da análise> } -> baixa as fotos do anúncio e guarda no sistema
 // Só funciona para usuários logados no Car King.
 import { createClient } from 'npm:@supabase/supabase-js@2.119.0'
 
@@ -25,6 +26,21 @@ function decode(s) {
   return s.replace(/&#x([0-9a-f]+);/gi, (_, h) => String.fromCodePoint(parseInt(h, 16)))
     .replace(/&#(\d+);/g, (_, d) => String.fromCodePoint(Number(d)))
     .replace(/&[a-z#0-9]+;/gi, (e) => ENTITIES[e] ?? e)
+}
+// Fotos do Capital ficam num CDN que redimensiona pelo próprio link (JSON em base64):
+// pedimos no máximo 1600px para não guardar arquivos enormes.
+const CAP_CDN = 'https://d15elt7v7u5mpm.cloudfront.net/'
+function b64(s) { return typeof btoa === 'function' ? btoa(s) : Buffer.from(s, 'binary').toString('base64') }
+function unb64(s) { return typeof atob === 'function' ? atob(s) : Buffer.from(s, 'base64').toString('binary') }
+function cdnUrl(bucket, key) {
+  return CAP_CDN + b64(JSON.stringify({ bucket, key, edits: { resize: { width: 1600, height: 1600, fit: 'inside' } } }))
+}
+function photoUrl(u) {
+  if (typeof u !== 'string' || !u.startsWith(CAP_CDN)) return u
+  try {
+    const j = JSON.parse(unb64(u.slice(CAP_CDN.length).replace(/-/g, '+').replace(/_/g, '/')))
+    return j.bucket && j.key ? cdnUrl(j.bucket, j.key) : u
+  } catch { return u }
 }
 function textLines(html) {
   const body = html.replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>|<noscript[\s\S]*?<\/noscript>/gi, '')
@@ -120,10 +136,19 @@ function parseCapital(html, url) {
   }
   const sale = embedded.sale || {}
 
-  // fotos
+  // fotos: a galeria completa vem em embedded.images; o ld+json só tem algumas
   let images = []
-  const ld = /<script[^>]*application\/ld\+json[^>]*>([\s\S]*?)<\/script>/i.exec(html)
-  if (ld) { try { const j = JSON.parse(ld[1]); images = Array.isArray(j.image) ? j.image : j.image ? [j.image] : [] } catch { /* ignora */ } }
+  if (Array.isArray(embedded.images) && embedded.images.length) {
+    images = [...embedded.images]
+      .sort((a, b) => (b.is_main || 0) - (a.is_main || 0) || (a.sort ?? 0) - (b.sort ?? 0))
+      .map((im) => im.full_path || (im.bucket && im.s3_link ? cdnUrl(im.bucket, im.s3_link) : null))
+      .filter(Boolean)
+  }
+  if (!images.length) {
+    const ld = /<script[^>]*application\/ld\+json[^>]*>([\s\S]*?)<\/script>/i.exec(html)
+    if (ld) { try { const j = JSON.parse(ld[1]); images = Array.isArray(j.image) ? j.image : j.image ? [j.image] : [] } catch { /* ignora */ } }
+  }
+  images = [...new Set(images.map(photoUrl))].slice(0, 40)
 
   const location = at('Location')
   const [city, state] = (location || '').split(',').map((s) => s.trim())
@@ -215,6 +240,78 @@ async function decodeVin(vin) {
   }
 }
 
+// ============================================================================
+// Baixa as fotos do anúncio e guarda no Storage (vehicle-media), ligadas à análise
+async function fetchListing(url: string) {
+  const res = await fetch(url, {
+    headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130 Safari/537.36', 'Accept-Language': 'en-US,en' },
+    redirect: 'follow',
+  })
+  if (!res.ok) throw new Error(`O site do leilão respondeu com erro ${res.status}.`)
+  return (await res.text()).slice(0, 3_000_000)
+}
+
+function originalUrl(u: string) {
+  // mesmo link do CDN, sem redimensionar (plano B se o redimensionado falhar)
+  if (!u.startsWith(CAP_CDN)) return null
+  try {
+    const j = JSON.parse(atob(u.slice(CAP_CDN.length)))
+    return CAP_CDN + btoa(JSON.stringify({ bucket: j.bucket, key: j.key, edits: { resize: { fit: 'inside' } } }))
+  } catch { return null }
+}
+
+async function download(u: string) {
+  for (const candidate of [u, originalUrl(u)].filter(Boolean) as string[]) {
+    try {
+      const r = await fetch(candidate)
+      const type = (r.headers.get('content-type') || '').split(';')[0]
+      if (!r.ok || !type.startsWith('image/')) continue
+      const buf = new Uint8Array(await r.arrayBuffer())
+      if (buf.byteLength < 2000 || buf.byteLength > 12_000_000) continue
+      return { buf, type }
+    } catch { /* tenta o próximo */ }
+  }
+  return null
+}
+
+async function savePhotos(db, oppId: string) {
+  if (!/^[0-9a-f-]{36}$/i.test(oppId)) return { error: 'Análise inválida.' }
+  const { data: opp, error } = await db.from('auction_opportunities').select('id, company_id, listing_url').eq('id', oppId).maybeSingle()
+  if (error || !opp) return { error: 'Análise não encontrada.' }
+  if (!opp.listing_url) return { error: 'Esta análise não tem o link do anúncio.' }
+  const { count } = await db.from('attachments').select('id', { count: 'exact', head: true })
+    .eq('entity_type', 'auction_opportunity').eq('entity_id', opp.id).eq('kind', 'photo')
+  if ((count || 0) > 0) return { saved: 0, already: count }
+
+  let url: URL
+  try { url = new URL(opp.listing_url) } catch { return { error: 'Link do anúncio inválido.' } }
+  if (/^(localhost|127\.|10\.|192\.168\.|169\.254\.|172\.(1[6-9]|2\d|3[01])\.)/.test(url.hostname)) return { error: 'Link não permitido.' }
+  const { images } = parseListing(await fetchListing(url.toString()), url.toString())
+  const list = (images || []).filter((u) => /^https:\/\//.test(u)).slice(0, 40)
+  if (!list.length) return { saved: 0, found: 0 }
+
+  let saved = 0
+  const results = []
+  for (let i = 0; i < list.length; i += 4) {
+    results.push(...await Promise.all(list.slice(i, i + 4).map(download)))
+  }
+  for (let i = 0; i < results.length; i++) {
+    const img = results[i]
+    if (!img) continue
+    const ext = img.type === 'image/png' ? 'png' : img.type === 'image/webp' ? 'webp' : 'jpg'
+    const path = `${opp.company_id}/auction_opportunity/${opp.id}/leilao-${String(i + 1).padStart(2, '0')}.${ext}`
+    const up = await db.storage.from('vehicle-media').upload(path, img.buf, { contentType: img.type, upsert: true })
+    if (up.error) continue
+    const ins = await db.from('attachments').insert({
+      entity_type: 'auction_opportunity', entity_id: opp.id, opportunity_id: opp.id, kind: 'photo', stage: 'before',
+      bucket: 'vehicle-media', path, file_name: `leilao-${i + 1}.${ext}`, mime_type: img.type, size_bytes: img.buf.byteLength,
+      sort_order: i, caption: 'Foto do leilão',
+    })
+    if (!ins.error) saved++
+  }
+  return { saved, found: list.length }
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors })
   try {
@@ -224,6 +321,13 @@ Deno.serve(async (req) => {
     if (!user) return json({ error: 'Faça login novamente.' }, 401)
 
     const body = await req.json()
+    if (body.save_photos) {
+      // cliente com o login do usuário: as regras de acesso (RLS) valem normalmente
+      const db = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_ANON_KEY')!, {
+        auth: { persistSession: false }, global: { headers: { Authorization: `Bearer ${token}` } },
+      })
+      return json(await savePhotos(db, String(body.save_photos)))
+    }
     if (body.vin) {
       const v = String(body.vin).trim().toUpperCase()
       if (!/^[A-HJ-NPR-Z0-9]{17}$/.test(v)) return json({ error: 'VIN inválido (17 caracteres, sem I, O ou Q).' }, 400)

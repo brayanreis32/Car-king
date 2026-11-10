@@ -3,7 +3,7 @@ import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { date, label, money, options, pct, q, signedMoney, supabase, toNum, VEHICLE_STATUS_TONE, vehicleName } from '../lib.js'
 import { Badge, ErrorBox, Field, Icon, Kpi, Modal, MoneyInput, Select, Spinner, Tabs, useAction, useLoad } from '../components/ui.jsx'
 import { Documents, Expenses, Labor, Parts, Sale, Transport } from './VehicleTabs.jsx'
-import { VehiclePhotos } from '../components/photos.jsx'
+import { AuctionPhotos, VehiclePhotos } from '../components/photos.jsx'
 import { DeleteRecordButton } from '../components/deleteRecord.jsx'
 
 const MANUAL_STATUS = ['purchased', 'awaiting_pickup', 'in_transit', 'received', 'in_inspection', 'in_preparation',
@@ -73,7 +73,10 @@ export default function VehicleDetail() {
       ]} />
 
       {tab === 'summary' && <Summary v={v} pa={pa} onEditPrices={() => setEditingPrices(true)} />}
-      {tab === 'photos' && <VehiclePhotos vehicle={v} />}
+      {tab === 'photos' && <div className="stack">
+        <VehiclePhotos vehicle={v} />
+        {v.opportunity_id && <AuctionPhotos opportunityId={v.opportunity_id} vehicle={v} title="Fotos do leilão (como foi comprado)" canPull={false} />}
+      </div>}
       {tab === 'budget' && <Budget budget={budget} />}
       {tab === 'transport' && <Transport vehicle={v} onChange={reload} />}
       {tab === 'parts' && <Parts vehicle={v} onChange={reload} />}

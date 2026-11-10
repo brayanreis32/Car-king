@@ -5,6 +5,7 @@ import { Badge, Empty, ErrorBox, Field, Icon, Modal, MoneyInput, Select, Spinner
 import { OpportunityForm } from './Auctions.jsx'
 import { useApp } from '../App.jsx'
 import { DeleteRecordButton } from '../components/deleteRecord.jsx'
+import { AuctionPhotos } from '../components/photos.jsx'
 
 const MANUAL_STATUS = ['analyzing', 'awaiting_inspection', 'awaiting_quote', 'approved', 'lost', 'discarded']
 
@@ -74,6 +75,7 @@ export default function AuctionDetail() {
           <InfoCard opp={opp} />
           <TitleCard opp={opp} onChange={reload} readOnly={won} />
           <Damages opp={opp} damages={damages} onChange={reload} readOnly={won} />
+          <AuctionPhotos opportunityId={opp.id} listingUrl={opp.listing_url} vehicle={opp} canPull={!won} />
           {!won && <Bids opp={opp} bids={bids} maxBid={sims[0]?.max_bid} onChange={reload} />}
 
           {!won && (
