@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+  <head>
+<!--#include head-->
+    <title>Car Financing{{inCity}} · Buy Here Pay Here · {{name}}</title>
+    <meta name="description" content="In-house car financing{{inCity}}. First-time buyers, low credit or no credit welcome. Apply online in minutes at {{name}}." />
+    <meta property="og:title" content="Car financing · {{name}}" />
+    <meta property="og:description" content="In-house financing with weekly, bi-weekly or monthly payments. Apply online." />
+    <meta property="og:url" content="{{siteUrl}}/financing.html" />
+    <link rel="canonical" href="{{siteUrl}}/financing.html" />
+  </head>
+  <body data-page="financing">
+<!--#include header-->
+    <main id="main">
+      <section class="page-hero">
+        <div class="wrap">
+          <h1>Financing</h1>
+          <p class="muted">In-house payment plans and outside lenders. Apply online in a few minutes.</p>
+        </div>
+      </section>
+
+      <section class="section pt-0">
+        <div class="wrap fin">
+          <div class="fin-info">
+            <h2>How in-house financing works</h2>
+            <ol class="steps">
+              <li><b>Apply online</b><span>Tell us a little about you and the car you like. It takes about 3 minutes.</span></li>
+              <li><b>We call you</b><span>We review your application and talk about the down payment and a payment plan that fits your budget.</span></li>
+              <li><b>Drive home</b><span>Sign the paperwork, pay the down payment and take your car. Pay weekly, bi-weekly or monthly.</span></li>
+            </ol>
+            <h3>What to bring</h3>
+            <ul class="checks">
+              <li>Valid driver license (or ID)</li>
+              <li>Proof of income (recent pay stubs or bank statements)</li>
+              <li>Proof of address (utility bill or lease)</li>
+              <li>Down payment</li>
+            </ul>
+            <p class="small muted">First-time buyers, low credit, no credit and ITIN customers are welcome to apply. Approval and terms depend on your situation. We never ask for your Social Security Number on this website.</p>
+          </div>
+
+          <form class="form card-form" id="apply" data-lead="financing" novalidate>
+            <h2>Pre-approval application</h2>
+            <div class="grid2">
+              <label>Full name *<input name="name" autocomplete="name" required /></label>
+              <label>Phone *<input name="phone" type="tel" autocomplete="tel" inputmode="tel" required /></label>
+            </div>
+            <label>E-mail<input name="email" type="email" autocomplete="email" /></label>
+            <label>Vehicle you're interested in<select name="vehicle_id" id="vehicle"><option value="">Not sure yet / help me choose</option></select></label>
+            <div class="grid2">
+              <label>Down payment available<select name="down">
+                <option value="">Select</option><option>Under $1,000</option><option>$1,000 – $2,000</option><option>$2,000 – $3,500</option>
+                <option>$3,500 – $5,000</option><option>More than $5,000</option></select></label>
+              <label>Monthly income (before taxes)<select name="income">
+                <option value="">Select</option><option>Under $2,000</option><option>$2,000 – $3,000</option><option>$3,000 – $4,500</option>
+                <option>$4,500 – $6,000</option><option>More than $6,000</option></select></label>
+            </div>
+            <div class="grid2">
+              <label>Time at current job<select name="job_time">
+                <option value="">Select</option><option>Less than 6 months</option><option>6 months – 1 year</option><option>1 – 3 years</option>
+                <option>More than 3 years</option><option>Self-employed</option></select></label>
+              <label>Time at current address<select name="address_time">
+                <option value="">Select</option><option>Less than 6 months</option><option>6 months – 1 year</option><option>1 – 3 years</option><option>More than 3 years</option></select></label>
+            </div>
+            <div class="grid2">
+              <label>How is your credit?<select name="credit">
+                <option value="">Select</option><option>Good</option><option>Fair</option><option>Poor</option><option>No credit history</option><option>ITIN / no SSN</option></select></label>
+              <label>Preferred payments<select name="frequency">
+                <option value="">Select</option><option>Weekly</option><option>Bi-weekly</option><option>Monthly</option></select></label>
+            </div>
+            <label>Anything else we should know?<textarea name="message" rows="2"></textarea></label>
+            <label class="check"><input type="checkbox" name="consent" value="yes" required /> I agree to be contacted by {{name}} by phone, text message or WhatsApp about my application. Message and data rates may apply. Reply STOP to opt out.</label>
+            <label class="hp" aria-hidden="true">Leave empty<input name="website" tabindex="-1" autocomplete="off" /></label>
+            <button class="btn btn-gold" type="submit">Submit application</button>
+            <p class="form-msg" role="status"></p>
+            <p class="small muted">This is not a credit application and does not affect your credit score.</p>
+          </form>
+        </div>
+      </section>
+    </main>
+<!--#include footer-->
+    <script type="module" src="./src/financing.js"></script>
+  </body>
+</html>

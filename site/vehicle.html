@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+  <head>
+<!--#include head-->
+    <title>Vehicle details · {{name}}</title>
+    <meta name="description" content="Vehicle details, photos and price at {{name}}{{inCity}}." />
+    <meta property="og:title" content="Vehicle for sale · {{name}}" />
+    <meta property="og:url" content="{{siteUrl}}/vehicle.html" />
+  </head>
+  <body data-page="vehicle">
+<!--#include header-->
+    <main id="main">
+      <div class="wrap">
+        <nav class="crumbs" aria-label="Breadcrumb"><a href="./inventory.html">← Back to inventory</a></nav>
+        <div id="car" aria-live="polite"><div class="vd-loading"><div class="card skeleton tall"></div></div></div>
+      </div>
+
+      <template id="car-tpl">
+        <div class="vd">
+          <div class="vd-main">
+            <div class="gallery">
+              <div class="g-main">
+                <img id="g-img" alt="" />
+                <button class="g-nav g-prev" type="button" aria-label="Previous photo">‹</button>
+                <button class="g-nav g-next" type="button" aria-label="Next photo">›</button>
+                <span class="g-count"></span>
+              </div>
+              <div class="g-thumbs"></div>
+            </div>
+            <section class="vd-box">
+              <h2>Vehicle details</h2>
+              <dl class="specs"></dl>
+              <p class="title-note small muted"></p>
+            </section>
+            <section class="vd-box">
+              <h2>Estimate your payment</h2>
+              <form class="calc" id="calc">
+                <label>Vehicle price<input name="price" inputmode="decimal" /></label>
+                <label>Down payment<input name="down" inputmode="decimal" /></label>
+                <label>Interest rate (APR %)<input name="apr" inputmode="decimal" value="12" /></label>
+                <label>Term<select name="term"><option value="12">12 months</option><option value="18">18 months</option><option value="24" selected>24 months</option><option value="36">36 months</option><option value="48">48 months</option></select></label>
+              </form>
+              <p class="calc-out"><span>Estimated monthly payment</span><b id="calc-out">—</b></p>
+              <p class="small muted">Estimate only, not an offer of credit. Taxes, title and fees not included. Your final terms depend on approval.</p>
+            </section>
+          </div>
+          <aside class="vd-side">
+            <div class="vd-box sticky">
+              <h1 class="vd-title"></h1>
+              <div class="vd-trim muted"></div>
+              <div class="vd-price"></div>
+              <div class="vd-badges"></div>
+              <div class="vd-actions">
+                <!--#if phone--><a class="btn btn-dark" href="tel:{{phoneHref}}">Call {{phone}}</a><!--/if phone-->
+                <!--#if waNumber--><a class="btn btn-line" id="wa" href="https://wa.me/{{waNumber}}" target="_blank" rel="noopener">WhatsApp us</a><!--/if waNumber-->
+                <a class="btn btn-gold" id="apply" href="./financing.html">Get pre-approved</a>
+              </div>
+              <form class="form" data-lead="availability" id="avail" novalidate>
+                <h3>Check availability</h3>
+                <label>Name<input name="name" autocomplete="name" required /></label>
+                <label>Phone<input name="phone" type="tel" autocomplete="tel" inputmode="tel" /></label>
+                <label>E-mail<input name="email" type="email" autocomplete="email" /></label>
+                <label>Message<textarea name="message" rows="2">Is this vehicle still available?</textarea></label>
+                <label class="hp" aria-hidden="true">Leave empty<input name="website" tabindex="-1" autocomplete="off" /></label>
+                <button class="btn btn-dark" type="submit">Send</button>
+                <p class="form-msg" role="status"></p>
+              </form>
+            </div>
+          </aside>
+        </div>
+      </template>
+    </main>
+<!--#include footer-->
+    <script type="module" src="./src/vehicle.js"></script>
+  </body>
+</html>

@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+  <head>
+<!--#include head-->
+    <title>Used Car Inventory{{inCity}} · {{name}}</title>
+    <meta name="description" content="Browse used cars, SUVs and trucks for sale{{inCity}} at {{name}}. Photos, mileage and prices online. In-house financing available." />
+    <meta property="og:title" content="Used car inventory · {{name}}" />
+    <meta property="og:description" content="See every car we have for sale, with photos, mileage and prices." />
+    <meta property="og:url" content="{{siteUrl}}/inventory.html" />
+    <link rel="canonical" href="{{siteUrl}}/inventory.html" />
+  </head>
+  <body data-page="inventory">
+<!--#include header-->
+    <main id="main">
+      <section class="page-hero">
+        <div class="wrap">
+          <h1>Inventory</h1>
+          <p id="count" class="muted">Loading vehicles…</p>
+        </div>
+      </section>
+      <section class="section pt-0">
+        <div class="wrap">
+          <form class="filters" id="filters" role="search">
+            <label class="f-q"><span class="sr">Search</span><input name="q" type="search" placeholder="Search make, model or year" autocomplete="off" /></label>
+            <label><span class="sr">Make</span><select name="make"><option value="">All makes</option></select></label>
+            <label><span class="sr">Max price</span><select name="max">
+              <option value="">Any price</option><option value="5000">Under $5,000</option><option value="8000">Under $8,000</option>
+              <option value="10000">Under $10,000</option><option value="15000">Under $15,000</option><option value="20000">Under $20,000</option>
+              <option value="30000">Under $30,000</option></select></label>
+            <label><span class="sr">Sort</span><select name="sort">
+              <option value="new">Newest arrivals</option><option value="price_asc">Price: low to high</option>
+              <option value="price_desc">Price: high to low</option><option value="miles">Lowest mileage</option>
+              <option value="year">Newest year</option></select></label>
+          </form>
+          <div class="cards" id="list" aria-live="polite">
+            <div class="card skeleton"></div><div class="card skeleton"></div><div class="card skeleton"></div><div class="card skeleton"></div>
+          </div>
+        </div>
+      </section>
+      <section class="section section-alt">
+        <div class="wrap cta-band">
+          <div>
+            <h2>Don't see what you're looking for?</h2>
+            <p>New cars arrive every week. Tell us what you want and your budget and we'll let you know when we find it.</p>
+          </div>
+          <a class="btn btn-dark" href="./contact.html">Tell us what you need</a>
+        </div>
+      </section>
+    </main>
+<!--#include footer-->
+    <script type="module" src="./src/inventory.js"></script>
+  </body>
+</html>

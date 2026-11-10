@@ -1,7 +1,8 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { money, q, supabase, today, vehicleName } from '../lib.js'
-import { Badge, Empty, ErrorBox, Field, Icon, Modal, Spinner, useAction, useLoad } from '../components/ui.jsx'
+import { Badge, Empty, ErrorBox, Field, Icon, Modal, Spinner, Tabs, useAction, useLoad } from '../components/ui.jsx'
+import SiteLeads, { useNewLeadsCount } from './SiteLeads.jsx'
 import { useApp } from '../App.jsx'
 
 const onlyDigits = (v) => String(v || '').replace(/\D/g, '')
@@ -28,6 +29,23 @@ export function receivableSummary(rows = []) {
 }
 
 export default function Customers() {
+  const [params, setParams] = useSearchParams()
+  const tab = params.get('tab') === 'site' ? 'site' : 'list'
+  const [leadsKey, setLeadsKey] = useState(0)
+  const newLeads = useNewLeadsCount(leadsKey)
+  return (
+    <div className="stack">
+      <div className="page-head">
+        <div><h1>Clientes</h1><div className="muted small">Cadastro, documentos, carros comprados, faturas e contatos do site</div></div>
+      </div>
+      <Tabs tabs={[['list', 'Clientes'], ['site', `Contatos do site${newLeads ? ` (${newLeads} novo${newLeads > 1 ? 's' : ''})` : ''}`]]}
+        active={tab} onChange={(t) => setParams(t === 'site' ? { tab: 'site' } : {})} />
+      {tab === 'site' ? <SiteLeads onChange={() => setLeadsKey((k) => k + 1)} /> : <CustomerList />}
+    </div>
+  )
+}
+
+function CustomerList() {
   const nav = useNavigate()
   const { can } = useApp()
   const [search, setSearch] = useState('')
@@ -60,12 +78,8 @@ export default function Customers() {
 
   return (
     <div className="stack">
-      <div className="page-head">
-        <div><h1>Clientes</h1><div className="muted small">Cadastro, documentos, carros comprados e faturas</div></div>
-        {can('customers', 'create') && <button className="btn-primary" onClick={() => setAdding(true)}><Icon name="plus" /> Novo cliente</button>}
-      </div>
-
       <div className="row" style={{ gap: 8 }}>
+        {can('customers', 'create') && <button className="btn-primary" onClick={() => setAdding(true)}><Icon name="plus" /> Novo cliente</button>}
         <input className="grow" style={{ minWidth: 200 }} placeholder="Buscar por nome, telefone, e-mail ou carro" value={search} onChange={(e) => setSearch(e.target.value)} />
         <div className="seg">
           <button className={filter === 'all' ? 'active' : ''} onClick={() => setFilter('all')}>Todos</button>

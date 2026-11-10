@@ -1,0 +1,33 @@
+<a class="skip" href="#main">Skip to main content</a>
+<div class="topbar">
+  <div class="wrap topbar-in">
+    <span class="topbar-langs">{{languages}}</span>
+    <span class="topbar-links">
+      <!--#if cityState--><span class="hide-sm">{{cityState}}</span><!--/if cityState-->
+      <!--#if phone--><a href="tel:{{phoneHref}}">{{phone}}</a><!--/if phone-->
+    </span>
+  </div>
+</div>
+<header class="header">
+  <div class="wrap header-in">
+    <a class="brand" href="./" aria-label="{{name}} home"><img src="./logo.jpg" alt="{{name}}" width="2000" height="667" /></a>
+    <nav class="nav" aria-label="Main">
+      <a href="./inventory.html" data-nav="inventory">Inventory</a>
+      <a href="./financing.html" data-nav="financing">Financing</a>
+      <a href="./contact.html" data-nav="contact">Contact</a>
+    </nav>
+    <div class="header-cta">
+      <!--#if phone--><a class="btn btn-line hide-sm" href="tel:{{phoneHref}}">Call {{phone}}</a><!--/if phone-->
+      <a class="btn btn-dark" href="./financing.html">Get pre-approved</a>
+      <button class="menu-btn" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="mobile-nav">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      </button>
+    </div>
+  </div>
+  <nav class="mobile-nav" id="mobile-nav" aria-label="Mobile" hidden>
+    <a href="./inventory.html">Inventory</a>
+    <a href="./financing.html">Financing</a>
+    <a href="./contact.html">Contact</a>
+    <!--#if phone--><a href="tel:{{phoneHref}}">Call {{phone}}</a><!--/if phone-->
+  </nav>
+</header>

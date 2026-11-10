@@ -537,5 +537,50 @@ select pg_temp.eq('cliente e documentos apagados',
   (select count(*) from customers where id = current_setting('test.cust')::uuid)
   + (select count(*) from attachments where entity_type = 'customer'), 0::bigint);
 
+-- ---------------------------------------------------------------------------
+-- Site público: estoque à venda e contatos
+-- ---------------------------------------------------------------------------
+select register_direct_purchase('1HGCV1F30LA000201', 'Honda', 'Accord', 2020, 'rebuilt', 6000, p_expected_sale_price => 14500, p_odometer => 61000, p_color => 'Black', p_stock_number => 'CK-SITE1') \g /dev/null
+select register_direct_purchase('1HGCV1F30LA000202', 'Honda', 'Civic', 2019, 'clean', 5000, p_expected_sale_price => 11000, p_stock_number => 'CK-SITE2') \g /dev/null
+update vehicles set status = 'ready_for_sale' where stock_number = 'CK-SITE1';
+insert into attachments (entity_type, entity_id, vehicle_id, kind, bucket, path, file_name)
+select 'vehicle', id, id, 'photo', 'vehicle-media', 'c/vehicle/' || id || '/front.jpg', 'front.jpg' from vehicles where stock_number = 'CK-SITE1';
+insert into attachments (entity_type, entity_id, vehicle_id, kind, bucket, path, file_name)
+select 'vehicle', id, id, 'photo', 'vehicle-media', 'c/vehicle/' || id || '/civic.jpg', 'civic.jpg' from vehicles where stock_number = 'CK-SITE2';
+reset role;
+select set_config('test.site_car', (select id::text from vehicles where stock_number = 'CK-SITE1'), false) \g /dev/null
+select set_config('test.site_car_photo', 'c/vehicle/' || current_setting('test.site_car') || '/front.jpg', false) \g /dev/null
+select set_config('test.hidden_photo', (select 'c/vehicle/' || id || '/civic.jpg' from vehicles where stock_number = 'CK-SITE2'), false) \g /dev/null
+select set_config('request.jwt.claim.sub', '', false) \g /dev/null
+set role anon;
+select pg_temp.eq('site mostra só carro à venda', jsonb_array_length(public.public_inventory()), 1);
+select pg_temp.eq('site mostra preço, milhas e foto',
+  (select (e->>'price')::numeric = 14500 and (e->>'mileage')::int = 61000 and jsonb_array_length(e->'photos') = 1 and e->>'title_status' = 'rebuilt'
+     from jsonb_array_elements(public.public_inventory()) e), true);
+select pg_temp.eq('site não expõe custo nem lucro',
+  (select not (e ? 'actual_cost') and not (e ? 'expected_profit') and not (e ? 'notes') and not (e ? 'company_id')
+     from jsonb_array_elements(public.public_inventory()) e), true);
+select pg_temp.eq('foto de carro à venda é pública', public.site_photo_is_public(current_setting('test.site_car_photo')), true);
+select pg_temp.eq('foto de carro em preparação é privada', public.site_photo_is_public(current_setting('test.hidden_photo')), false);
+select pg_temp.eq('visitante envia contato do site',
+  public.submit_website_lead('availability', 'Ana Visitante', '(407) 555-0199', 'ana@test.com', 'Is it available?', current_setting('test.site_car')::uuid), true);
+select pg_temp.must_fail('contato sem telefone nem e-mail', $q$select public.submit_website_lead('contact', 'Ana', null, null, 'oi')$q$);
+select pg_temp.must_fail('telefone inválido', $q$select public.submit_website_lead('contact', 'Ana', '123')$q$);
+select pg_temp.must_fail('site recusa SSN', $q$select public.submit_website_lead('financing', 'Ana', '4075550199', null, 'my ssn is 123-45-6789')$q$);
+select public.submit_website_lead('contact', 'Ana Visitante', '4075550199') \g /dev/null
+select public.submit_website_lead('contact', 'Ana Visitante', '4075550199') \g /dev/null
+select pg_temp.must_fail('limite anti-spam por telefone', $q$select public.submit_website_lead('contact', 'Ana Visitante', '4075550199')$q$);
+select pg_temp.must_fail('visitante não lê contatos', $q$select count(*) from website_leads$q$);
+select pg_temp.must_fail('visitante não lê veículos', $q$select count(*) from vehicles$q$);
+reset role;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', false) \g /dev/null
+set role authenticated;
+select pg_temp.eq('equipe vê contatos do site com o carro',
+  (select count(*) from website_leads where kind = 'availability' and vehicle_label like '2020 Honda Accord%'), 1::bigint);
+reset role;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000003', false) \g /dev/null
+set role authenticated;
+select pg_temp.eq('outra empresa não vê contatos do site', (select count(*) from website_leads), 0::bigint);
+
 reset role;
 \echo 'CARKING: todos os testes de regras de negócio passaram.'

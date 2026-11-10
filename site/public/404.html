@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex" />
+  <title>Page not found · Car King Auto Sales</title>
+  <style>
+    body { margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center; font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; background: #fff; color: #1B1C1E; }
+    main { text-align: center; padding: 24px; }
+    h1 { font-size: 22px; margin: 0 0 8px; }
+    p { color: #64666B; margin: 0 0 20px; }
+    a { display: inline-block; background: #111214; color: #fff; padding: 12px 18px; border-radius: 8px; text-decoration: none; font-weight: 600; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Page not found</h1>
+    <p>This page doesn't exist or the car was already sold.</p>
+    <a id="home" href="/">See our inventory</a>
+  </main>
+  <script>
+    // GitHub Pages de projeto: o site fica em /<repositório>/ e o sistema em /<repositório>/sistema/
+    var parts = location.pathname.split('/');
+    var onProject = location.hostname.indexOf('github.io') !== -1 && parts[1];
+    var home = onProject ? '/' + parts[1] + '/' : '/';
+    if (location.pathname.indexOf('/sistema/') !== -1) location.replace(home + 'sistema/');
+    document.getElementById('home').href = home + 'inventory.html';
+  </script>
+</body>
+</html>

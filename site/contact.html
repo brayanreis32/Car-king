@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+  <head>
+<!--#include head-->
+    <title>Contact {{name}}{{inCity}}</title>
+    <meta name="description" content="Contact {{name}}{{inCity}}. Call, send a WhatsApp or a message about a car, a trade-in or a test drive." />
+    <meta property="og:title" content="Contact · {{name}}" />
+    <meta property="og:url" content="{{siteUrl}}/contact.html" />
+    <link rel="canonical" href="{{siteUrl}}/contact.html" />
+  </head>
+  <body data-page="contact">
+<!--#include header-->
+    <main id="main">
+      <section class="page-hero">
+        <div class="wrap">
+          <h1>Contact us</h1>
+          <p class="muted">Questions about a car, a trade-in or financing? We usually reply the same day.</p>
+        </div>
+      </section>
+      <section class="section pt-0">
+        <div class="wrap visit">
+          <div>
+            <div class="contact-list">
+              <!--#if phone--><div><span class="muted small">Phone</span><a class="big-link" href="tel:{{phoneHref}}">{{phone}}</a></div><!--/if phone-->
+              <!--#if waNumber--><div><span class="muted small">WhatsApp / text</span><a class="big-link" href="https://wa.me/{{waNumber}}" target="_blank" rel="noopener">{{textPhone}}</a></div><!--/if waNumber-->
+              <!--#if email--><div><span class="muted small">E-mail</span><a class="big-link" href="mailto:{{email}}">{{email}}</a></div><!--/if email-->
+              <!--#if street--><div><span class="muted small">Address</span><span class="big-link">{{street}}<br />{{cityLine}}</span><!--#if mapsUrl--><a class="link" href="{{mapsUrl}}" target="_blank" rel="noopener">Get directions →</a><!--/if mapsUrl--></div><!--/if street-->
+              <!--#if byAppointment--><div><span class="muted small">Visits</span><span>By appointment. Send us a message to schedule.</span></div><!--/if byAppointment-->
+              <div><span class="muted small">We speak</span><span>{{languages}}</span></div>
+            </div>
+            <!--#if hours--><h3>Hours</h3><table class="hours"><tbody>{{hours}}</tbody></table><!--/if hours-->
+          </div>
+          <form class="form card-form" data-lead="contact" novalidate>
+            <h2>Send a message</h2>
+            <label>I'm interested in<select name="topic">
+              <option value="contact">A question / buying a car</option>
+              <option value="trade_in">Trading in or selling my car</option>
+              <option value="test_drive">Scheduling a test drive</option>
+            </select></label>
+            <div class="grid2">
+              <label>Name *<input name="name" autocomplete="name" required /></label>
+              <label>Phone<input name="phone" type="tel" autocomplete="tel" inputmode="tel" /></label>
+            </div>
+            <label>E-mail<input name="email" type="email" autocomplete="email" /></label>
+            <label>Message<textarea name="message" rows="4" placeholder="For a trade-in, tell us the year, make, model and mileage."></textarea></label>
+            <label class="hp" aria-hidden="true">Leave empty<input name="website" tabindex="-1" autocomplete="off" /></label>
+            <button class="btn btn-dark" type="submit">Send message</button>
+            <p class="form-msg" role="status"></p>
+          </form>
+        </div>
+      </section>
+    </main>
+<!--#include footer-->
+    <script type="module" src="./src/contact.js"></script>
+  </body>
+</html>
