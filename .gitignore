@@ -5,3 +5,5 @@ supabase/.branches
 supabase/.temp
 node_modules/
 build/
+app/node_modules/
+app/dist/

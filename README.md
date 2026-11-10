@@ -30,9 +30,15 @@ essenciais, depois as telas**. Tudo roda no Supabase (PostgreSQL) e está cobert
 Fora do escopo (por decisão de projeto): aluguel, reservas de locação, consignação, frota de terceiros,
 motoristas, GPS, abastecimento e transporte de passageiros.
 
+## App
+
+**https://brayanreis32.github.io/Car-king/** — funciona no computador e no celular (adicione à tela de início).
+Código em [`app/`](app/README.md), publicado automaticamente pelo GitHub Pages.
+
 ## Estrutura
 
 ```
+app/               app web/celular (React + Vite + Supabase)
 supabase/
   migrations/      9 migrações SQL (aplicar em ordem)
   tests/           testes de regras de negócio + script para rodar localmente
