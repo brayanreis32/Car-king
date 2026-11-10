@@ -13,6 +13,19 @@ export async function q(promise) {
 }
 export const rpc = (fn, args) => q(supabase.rpc(fn, args))
 
+// Chama uma Edge Function do Supabase e devolve erros legíveis
+export async function callFunction(name, body) {
+  const { data, error } = await supabase.functions.invoke(name, { body })
+  if (error) {
+    let msg = error.message
+    try { const j = await error.context.json(); msg = j.error || msg } catch { /* sem corpo */ }
+    if (/Failed to send|not found|404/i.test(msg)) msg = `O serviço "${name}" ainda não foi instalado no Supabase.`
+    throw new Error(msg)
+  }
+  if (data?.error) throw new Error(data.error)
+  return data
+}
+
 function translateError(msg = '') {
   if (msg.includes('row-level security')) return 'Você não tem permissão para esta ação.'
   if (msg.includes('vehicles_company_id_vin_key')) return 'Já existe um veículo com este VIN.'

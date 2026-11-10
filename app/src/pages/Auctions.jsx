@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { date, label, money, options, OPP_STATUS_TONE, q, supabase, toNum, vehicleName } from '../lib.js'
-import { Badge, Empty, ErrorBox, Field, Icon, Modal, MoneyInput, Select, Spinner, Tabs, useAction, useLoad } from '../components/ui.jsx'
+import { callFunction, date, label, money, options, OPP_STATUS_TONE, q, supabase, toNum, vehicleName } from '../lib.js'
+import { Badge, Empty, ErrorBox, Field, Icon, Modal, MoneyInput, Select, Spinner, Tabs, useAction, useLoad, useToast } from '../components/ui.jsx'
 
 const DECISION_TONE = { viable: 'success', above_limit: 'warning', not_viable: 'error' }
 const OPEN = ['analyzing', 'awaiting_inspection', 'awaiting_quote', 'approved', 'bid_placed']
@@ -97,6 +97,58 @@ export function OpportunityForm({ initial, onClose, onSaved }) {
   const ev = (k) => (e) => set(k)(e.target.value)
   const [run, busy] = useAction()
   const sources = useLoad(() => q(supabase.from('auction_sources').select('id, name').eq('is_active', true).order('name')))
+  const toast = useToast()
+  const [importUrl, setImportUrl] = useState('')
+  const [importing, setImporting] = useState(false)
+  const [imported, setImported] = useState(null)
+  const [damages, setDamages] = useState([])
+
+  // Preenche o formulário com os dados lidos do anúncio do leilão
+  const importListing = async () => {
+    setImporting(true)
+    try {
+      const { data: d } = await callFunction('import-listing', { url: importUrl.trim() })
+      const list = sources.data || []
+      const capital = list.filter((x) => /capital/i.test(x.name))
+      const src = d.site === 'capital'
+        ? (capital.find((x) => (d.source_hint === 'online' ? /online/i : /presencial/i).test(x.name)) || capital[0])
+        : null
+      const str = (v) => (v === null || v === undefined ? '' : String(v))
+      setF((s) => ({
+        ...s,
+        source_id: src?.id || s.source_id, listing_url: d.listing_url || importUrl.trim(),
+        auction_name: str(d.auction_name) || s.auction_name, lot_number: str(d.lot_number) || s.lot_number,
+        auction_date: d.auction_date || s.auction_date, current_bid: str(d.current_bid) || s.current_bid,
+        buy_now_price: str(d.buy_now_price) || s.buy_now_price,
+        location_city: str(d.location_city) || s.location_city, location_state: str(d.location_state) || s.location_state,
+        vin: str(d.vin) || s.vin, year: str(d.year) || s.year, make: str(d.make) || s.make, model: str(d.model) || s.model,
+        trim: str(d.trim) || s.trim, odometer: str(d.odometer) || s.odometer, color: str(d.color) || s.color,
+        fuel_type: d.fuel_type || s.fuel_type, transmission: d.transmission || s.transmission,
+        title_status: d.title_status && d.title_status !== 'unknown' ? d.title_status : s.title_status,
+        run_condition: d.run_condition && d.run_condition !== 'unknown' ? d.run_condition : s.run_condition,
+        has_keys: d.has_keys === null || d.has_keys === undefined ? s.has_keys : String(d.has_keys),
+        primary_damage: str(d.primary_damage) || s.primary_damage, secondary_damage: str(d.secondary_damage) || s.secondary_damage,
+        notes: [s.notes, d.notes].filter(Boolean).join('\n'),
+      }))
+      setDamages(d.damages || [])
+      setImported({ site: d.site, damages: (d.damages || []).length, titleUnknown: !d.title_status || d.title_status === 'unknown' })
+      toast('Dados do anúncio importados. Confira antes de salvar.')
+    } catch (e) {
+      toast(e.message, 'error')
+    } finally { setImporting(false) }
+  }
+
+  const decodeVin = async () => {
+    setImporting(true)
+    try {
+      const { data: d } = await callFunction('import-listing', { vin: f.vin })
+      setF((s) => ({
+        ...s, year: s.year || String(d.year || ''), make: s.make || d.make || '', model: s.model || d.model || '',
+        trim: s.trim || d.trim || '', fuel_type: s.fuel_type || d.fuel_type || '', transmission: s.transmission || d.transmission || '',
+      }))
+      toast('Dados do VIN preenchidos')
+    } catch (e) { toast(e.message, 'error') } finally { setImporting(false) }
+  }
 
   const save = async (e) => {
     e.preventDefault()
@@ -112,9 +164,18 @@ export function OpportunityForm({ initial, onClose, onSaved }) {
       listing_url: f.listing_url || null, current_bid: toNum(f.current_bid), buy_now_price: toNum(f.buy_now_price),
       market_value_clean: toNum(f.market_value_clean), expected_value_repaired: toNum(f.expected_value_repaired), notes: f.notes || null,
     }
-    const saved = await run(() => initial
-      ? q(supabase.from('auction_opportunities').update(row).eq('id', initial.id).select('id').single())
-      : q(supabase.from('auction_opportunities').insert(row).select('id').single()), 'Carro salvo')
+    const saved = await run(async () => {
+      const r = initial
+        ? await q(supabase.from('auction_opportunities').update(row).eq('id', initial.id).select('id').single())
+        : await q(supabase.from('auction_opportunities').insert(row).select('id').single())
+      // danos do relatório de condição viram itens de dano (custo a estimar)
+      if (damages.length) {
+        await q(supabase.from('vehicle_damage_assessments').insert(damages.map((d) => ({
+          opportunity_id: r.id, area: d.area, condition: 'damaged', severity: 'medium', description: d.description, estimated_cost: 0,
+        }))))
+      }
+      return r
+    }, 'Carro salvo')
     onSaved(saved.id)
   }
 
@@ -122,6 +183,21 @@ export function OpportunityForm({ initial, onClose, onSaved }) {
     <Modal title={initial ? 'Editar carro do leilão' : 'Novo carro do leilão'} onClose={onClose}
       footer={<><button type="button" onClick={onClose}>Cancelar</button><button className="btn-primary" form="opp-form" disabled={busy}>{busy ? 'Salvando…' : 'Salvar'}</button></>}>
       <form id="opp-form" className="stack" onSubmit={save}>
+        {!initial && (
+          <div className="card stack" style={{ background: 'var(--surface-2)', gap: 10 }}>
+            <div><b>Importar do anúncio</b><div className="muted small">Cole o link do carro no site do leilão e o sistema preenche os dados.</div></div>
+            <div className="row" style={{ flexWrap: 'nowrap' }}>
+              <input type="url" inputMode="url" value={importUrl} onChange={(e) => setImportUrl(e.target.value)} placeholder="https://www.capitalautoauction.com/inventory/details/…" />
+              <button type="button" className="btn-primary" onClick={importListing} disabled={importing || !/^https?:\/\//.test(importUrl.trim())}>{importing ? 'Lendo…' : 'Importar'}</button>
+            </div>
+            {imported && (
+              <div className="alert-box success small">
+                Dados preenchidos{imported.damages ? ` · ${imported.damages} item(ns) do relatório de condição viram danos (informe o custo depois)` : ''}. Confira e complete os valores de mercado.
+                {imported.titleUnknown && <div style={{ marginTop: 4 }}>O anúncio não informa o tipo de título: confirme com o leilão.</div>}
+              </div>
+            )}
+          </div>
+        )}
         <h3 className="gold">Leilão</h3>
         <div className="form-grid">
           <Field label="Leilão / plataforma">
@@ -141,7 +217,12 @@ export function OpportunityForm({ initial, onClose, onSaved }) {
           <Field label="Marca *"><input required value={f.make} onChange={ev('make')} placeholder="Toyota" /></Field>
           <Field label="Modelo *"><input required value={f.model} onChange={ev('model')} placeholder="Camry" /></Field>
           <Field label="Versão"><input value={f.trim} onChange={ev('trim')} placeholder="SE" /></Field>
-          <Field label="VIN" span><input value={f.vin} onChange={(e) => set('vin')(e.target.value.toUpperCase())} maxLength={17} style={{ fontFamily: 'monospace', letterSpacing: 1 }} /></Field>
+          <Field label="VIN" span>
+            <div className="row" style={{ flexWrap: 'nowrap' }}>
+              <input value={f.vin} onChange={(e) => set('vin')(e.target.value.toUpperCase())} maxLength={17} style={{ fontFamily: 'monospace', letterSpacing: 1 }} />
+              <button type="button" className="btn-sm" onClick={decodeVin} disabled={importing || f.vin.length !== 17} title="Preenche ano, marca, modelo, versão, combustível e câmbio">Buscar pelo VIN</button>
+            </div>
+          </Field>
           <Field label="Milhas"><input type="number" inputMode="numeric" value={f.odometer} onChange={ev('odometer')} /></Field>
           <Field label="Cor"><input value={f.color} onChange={ev('color')} /></Field>
           <Field label="Combustível"><Select value={f.fuel_type} onChange={set('fuel_type')} placeholder="—" options={options('fuel_type')} /></Field>
