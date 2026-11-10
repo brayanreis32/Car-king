@@ -1,0 +1,3 @@
+# Car King é um sistema privado: nenhum buscador deve indexar.
+User-agent: *
+Disallow: /

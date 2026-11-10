@@ -32,7 +32,7 @@ export default function Vehicles() {
       <Tabs tabs={[['prep', `Em preparação (${count('prep')})`], ['sale', `À venda (${count('sale')})`], ['sold', `Vendidos (${count('sold')})`]]} active={tab} onChange={setTab} />
 
       {loading ? <Spinner /> : error ? <ErrorBox error={error} /> : rows.length === 0 ? (
-        <div className="card"><Empty icon="🚗" title="Nenhum veículo aqui">Os carros aparecem quando você registra a compra no Auction Analyzer.</Empty></div>
+        <div className="card"><Empty title="Nenhum veículo aqui">Os carros aparecem quando você registra a compra no Auction Analyzer.</Empty></div>
       ) : (
         <div className="card pad-0">
           <div className="table-wrap hide-mobile">

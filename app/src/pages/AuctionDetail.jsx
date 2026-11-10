@@ -59,7 +59,7 @@ export default function AuctionDetail() {
 
       {won && vehicle && (
         <div className="alert-box success row between">
-          <span>🏁 Carro arrematado e cadastrado no estoque.</span>
+          <span>Carro arrematado e cadastrado no estoque.</span>
           <Link to={`/veiculos/${vehicle.id}`} className="btn btn-sm btn-primary">Abrir veículo</Link>
         </div>
       )}
@@ -82,7 +82,7 @@ export default function AuctionDetail() {
                   placeholder={MANUAL_STATUS.includes(opp.status) ? undefined : label('opportunity_status', opp.status)}
                   options={MANUAL_STATUS.map((s) => [s, label('opportunity_status', s)])} disabled={busy} />
               </Field>
-              <button className="btn-primary" onClick={() => setBuying(true)}>🏁 Arrematei — registrar compra</button>
+              <button className="btn-primary" onClick={() => setBuying(true)}>Arrematei: registrar compra</button>
             </div>
           )}
         </div>
@@ -198,7 +198,7 @@ function Simulator({ opp, sims, damages, readOnly, onSaved }) {
 
       {r && (
         <div className={`verdict ${r.decision}`}>
-          <div className="small muted">LANCE MÁXIMO RECOMENDADO</div>
+          <div className="small muted">Lance máximo recomendado</div>
           <div className="big gold">{money(r.max_bid)}</div>
           <div className="small muted">
             taxas nesse lance {money(r.max_bid_fees)} · limitado por {label('binding_rule', r.max_bid_binding_rule)}
@@ -311,7 +311,7 @@ function TitleCard({ opp, onChange, readOnly }) {
     )
   }
   return (
-    <div className="card stack" style={{ borderColor: 'rgba(240,169,46,.5)' }}>
+    <div className="card stack" style={{ borderLeft: '4px solid var(--warning)' }}>
       <h2>Título: {label('title_status', opp.title_status)}</h2>
       <p className="small muted" style={{ margin: 0 }}>
         Antes de aprovar ou comprar, confirme se esse tipo de título permite registrar e revender o carro no seu estado.
@@ -341,7 +341,7 @@ function Damages({ opp, damages, onChange, readOnly }) {
         <h2>Danos ({money(total)})</h2>
         {!readOnly && <button className="btn-sm" onClick={() => setAdding(true)}><Icon name="plus" /> Dano</button>}
       </div>
-      {damages.length === 0 ? <Empty icon="🛠️" title="Nenhum dano registrado" /> : (
+      {damages.length === 0 ? <Empty title="Nenhum dano registrado" /> : (
         <div className="list">
           {damages.map((d) => (
             <div key={d.id} className="list-item" style={{ cursor: 'default' }}>
@@ -397,12 +397,12 @@ function Bids({ opp, bids, maxBid, onChange }) {
         <div className="grow"><MoneyInput value={amount} onChange={setAmount} placeholder="Valor do lance" /></div>
         <button onClick={add} disabled={busy || !opp.title_verified} title={!opp.title_verified ? 'Valide o título antes de dar lance' : ''}>Registrar</button>
       </div>
-      {over && <div className="alert-box warning">⚠️ Esse lance passa do seu limite de {money(maxBid)}.</div>}
+      {over && <div className="alert-box warning">Esse lance passa do seu limite de {money(maxBid)}.</div>}
       {!opp.title_verified && <div className="small muted">Valide o título para registrar lances.</div>}
       {bids.length > 0 && (
         <div className="lines small num">
           {bids.map((b) => (
-            <div key={b.id}><span className="muted">{date(b.placed_at)}</span><span className={b.exceeds_max_bid ? 'warn' : ''}>{money(b.amount)}{b.exceeds_max_bid && ' ⚠️'}</span></div>
+            <div key={b.id}><span className="muted">{date(b.placed_at)}</span><span className={b.exceeds_max_bid ? 'warn' : ''}>{money(b.amount)}{b.exceeds_max_bid && ' (acima do limite)'}</span></div>
           ))}
         </div>
       )}

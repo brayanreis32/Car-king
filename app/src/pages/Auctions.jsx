@@ -31,7 +31,7 @@ export default function Auctions() {
       <Tabs tabs={[['open', 'Em análise'], ['won', 'Arrematados'], ['closed', 'Descartados / perdidos']]} active={filter} onChange={setFilter} />
 
       {loading ? <Spinner /> : error ? <ErrorBox error={error} /> : rows.length === 0 ? (
-        <div className="card"><Empty icon="🔎" title="Nenhum carro aqui">Cadastre um carro que você encontrou no leilão para ver se vale a pena.</Empty></div>
+        <div className="card"><Empty title="Nenhum carro aqui">Cadastre um carro que você encontrou no leilão para ver se vale a pena.</Empty></div>
       ) : (
         <div className="card pad-0">
           <div className="table-wrap hide-mobile">

@@ -35,8 +35,8 @@ export function Brand({ big }) {
 
 export const Badge = ({ tone = '', children }) => <span className={`badge ${tone}`}>{children}</span>
 export const Spinner = () => <div className="spinner" />
-export const Empty = ({ icon = '📭', title, children }) => (
-  <div className="empty"><div className="icon">{icon}</div><div style={{ fontWeight: 600, color: 'var(--text)' }}>{title}</div>{children && <div className="small" style={{ marginTop: 6 }}>{children}</div>}</div>
+export const Empty = ({ title, children }) => (
+  <div className="empty"><div style={{ fontWeight: 600, color: 'var(--text)' }}>{title}</div>{children && <div className="small" style={{ marginTop: 6 }}>{children}</div>}</div>
 )
 export const ErrorBox = ({ error }) => (error ? <div className="alert-box error">{String(error.message || error)}</div> : null)
 

@@ -11,7 +11,21 @@ Salve aqui a logo oficial:
 A logo é um esportivo em linhas prateadas cromadas com uma coroa dourada, o texto **CAR** em prata,
 **KING** em dourado e **AUTO SALES** em branco espaçado, sobre fundo preto.
 
-## Paleta (tokens para o FlutterFlow → Theme Settings)
+## Paleta do app (tema claro)
+
+O app usa fundo claro e neutro; o dourado aparece só como detalhe da marca.
+
+| Token | Cor | Uso |
+|---|---|---|
+| `bg` | `#F6F6F4` | Fundo |
+| `surface` | `#FFFFFF` | Cartões |
+| `ink` | `#1B1C1E` | Texto e botões principais |
+| `text-2` | `#6A6C70` | Rótulos |
+| `border` | `#E4E4E0` | Bordas |
+| `gold` | `#A6801F` | Detalhes da marca (menu ativo, logo) |
+| `success` / `warning` / `error` | `#1E7F4F` / `#A35F00` / `#C2353A` | Lucro, aviso, prejuízo |
+
+## Paleta original da logo (fundo preto)
 
 | Token | Cor | Uso |
 |---|---|---|

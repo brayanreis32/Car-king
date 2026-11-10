@@ -34,7 +34,7 @@ export function Transport({ vehicle, onChange }) {
   if (error) return <ErrorBox error={error} />
   return (
     <div className="stack">
-      {data.length === 0 && <div className="card"><Empty icon="🚛" title="Nenhum reboque registrado" /></div>}
+      {data.length === 0 && <div className="card"><Empty title="Nenhum reboque registrado" /></div>}
       {data.map((t) => (
         <div key={t.id} className="card">
           <div className="row between">
@@ -80,7 +80,7 @@ function TransportModal({ vehicle, t, onClose, onDone }) {
   return (
     <Modal title="Reboque / transporte" onClose={onClose} footer={<><button onClick={onClose}>Cancelar</button><button className="btn-primary" onClick={save} disabled={busy}>Salvar</button></>}>
       <div className="stack">
-        {f.status !== 'delivered' && <button className="btn-sm" onClick={markDelivered}>✓ Carro chegou — marcar como entregue</button>}
+        {f.status !== 'delivered' && <button className="btn-sm" onClick={markDelivered}>Carro chegou: marcar como entregue</button>}
         <div className="form-grid">
           <Field label="Empresa de reboque"><SupplierSelect value={f.supplier_id} onChange={set('supplier_id')} type="transport" /></Field>
           <Field label="Status"><Select value={f.status} onChange={set('status')} options={TRANSPORT_STATUS.map((s) => [s, label('transport_status', s)])} /></Field>
@@ -138,7 +138,7 @@ export function Parts({ vehicle, onChange }) {
           <h2>Parts List</h2>
           {!sold && <button className="btn-sm btn-primary" onClick={() => setEditing({})}><Icon name="plus" /> Peça</button>}
         </div>
-        {parts.length === 0 ? <Empty icon="🔩" title="Nenhuma peça cadastrada" /> : (
+        {parts.length === 0 ? <Empty title="Nenhuma peça cadastrada" /> : (
           <div className="list">
             {parts.map((p) => (
               <div key={p.id} className="list-item" onClick={() => !sold && setEditing(p)}>
@@ -253,7 +253,7 @@ export function Labor({ vehicle, onChange }) {
           <h2>Serviços</h2>
           {!sold && <button className="btn-sm btn-primary" onClick={() => setAdding(true)}><Icon name="plus" /> Serviço</button>}
         </div>
-        {items.length === 0 ? <Empty icon="🔧" title="Nenhum serviço cadastrado">Ex.: troca de para-choque, pintura, alinhamento.</Empty> : (
+        {items.length === 0 ? <Empty title="Nenhum serviço cadastrado">Ex.: troca de para-choque, pintura, alinhamento.</Empty> : (
           <div className="list">
             {items.map((i) => (
               <div key={i.repair_item_id} className="list-item" style={{ cursor: 'default' }}>
@@ -267,7 +267,7 @@ export function Labor({ vehicle, onChange }) {
                 </div>
                 {!sold && <div className="row" style={{ gap: 6 }}>
                   <button className="btn-sm" onClick={() => setPaying(i)}>$ Lançar</button>
-                  {i.status !== 'completed' && i.status !== 'cancelled' && <button className="btn-sm" onClick={() => complete(i)}>✓</button>}
+                  {i.status !== 'completed' && i.status !== 'cancelled' && <button className="btn-sm" onClick={() => complete(i)}>Concluir</button>}
                 </div>}
               </div>
             ))}
@@ -390,7 +390,7 @@ export function Expenses({ vehicle, onChange }) {
           <h2>Outras despesas ({money(total)})</h2>
           <button className="btn-sm btn-primary" onClick={() => setAdding(true)}><Icon name="plus" /> Despesa</button>
         </div>
-        {data.expenses.length === 0 ? <Empty icon="🧾" title="Nenhuma despesa">Documentação, inspeção, estadia, limpeza, fotos, comissão de venda…</Empty> : (
+        {data.expenses.length === 0 ? <Empty title="Nenhuma despesa">Documentação, inspeção, estadia, limpeza, fotos, comissão de venda…</Empty> : (
           <div className="list">
             {data.expenses.map((e) => (
               <div key={e.id} className="list-item" style={{ cursor: 'default', opacity: e.status === 'cancelled' ? 0.5 : 1 }}>
@@ -473,7 +473,7 @@ export function Documents({ vehicle }) {
         <h2>Documentos</h2>
         <button className="btn-sm" onClick={() => setAdding(true)}><Icon name="plus" /> Documento</button>
       </div>
-      {data.length === 0 ? <Empty icon="📄" title="Nenhum documento" /> : (
+      {data.length === 0 ? <Empty title="Nenhum documento" /> : (
         <div className="list">
           {data.map((d) => (
             <div key={d.id} className="list-item" style={{ cursor: 'default', flexWrap: 'wrap' }}>
@@ -571,7 +571,7 @@ export function Sale({ vehicle, pa, onChange }) {
           <h2>Propostas</h2>
           <button className="btn-sm" onClick={() => setOffering(true)}><Icon name="plus" /> Proposta</button>
         </div>
-        {offers.length === 0 ? <Empty icon="🤝" title="Nenhuma proposta" /> : (
+        {offers.length === 0 ? <Empty title="Nenhuma proposta" /> : (
           <div className="list">
             {offers.map((o) => (
               <div key={o.offer_id} className="list-item" style={{ cursor: 'default' }}>
@@ -625,7 +625,7 @@ function SaleModal({ vehicle, pa, accounts, customers, onClose, onDone }) {
         p_payment_method: f.payment_method, p_down_payment: toNum(f.down_payment) ?? 0,
         p_down_payment_account_id: toNum(f.down_payment) ? accountId : null, p_notes: f.notes || null,
       })
-    }, 'Venda registrada! 🎉')
+    }, 'Venda registrada')
     onDone()
   }
   return (

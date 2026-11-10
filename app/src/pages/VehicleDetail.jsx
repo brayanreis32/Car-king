@@ -56,7 +56,7 @@ export default function VehicleDetail() {
 
       {overruns.length > 0 && !sold && (
         <div className="alert-box warning">
-          ⚠️ Acima do orçamento: {overruns.map((o) => `${label('budget_line', o.line)} (${signedMoney(o.difference)})`).join(' · ')}
+          Acima do orçamento: {overruns.map((o) => `${label('budget_line', o.line)} (${signedMoney(o.difference)})`).join(' · ')}
         </div>
       )}
 

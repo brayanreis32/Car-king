@@ -30,7 +30,7 @@ export default function Finance() {
       </div>
       <Tabs tabs={[['pay', `A pagar (${payables.length})`], ['receive', `A receber (${receivables.length})`]]} active={tab} onChange={setTab} />
       <div className="card pad-0">
-        {rows.length === 0 ? <Empty icon="✅" title="Nada em aberto" /> : (
+        {rows.length === 0 ? <Empty title="Nada em aberto" /> : (
           <div className="list">
             {rows.map((r) => {
               const late = r.due_date && r.due_date < today()

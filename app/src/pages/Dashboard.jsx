@@ -55,7 +55,7 @@ export default function Dashboard() {
           <Badge tone={data.alerts.length ? 'warning' : 'success'}>{data.alerts.length || 'Tudo em dia'}</Badge>
         </div>
         {data.alerts.length === 0 ? (
-          <div className="empty">✅ Nenhum alerta no momento.</div>
+          <div className="empty">Nenhum alerta no momento.</div>
         ) : (
           <div className="list">
             {data.alerts.map((a, i) => (

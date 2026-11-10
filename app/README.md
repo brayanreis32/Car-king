@@ -26,3 +26,11 @@ os dados são protegidos pelo Row Level Security do banco. Nunca coloque a chave
 | Veículos | Resumo de lucro, orçamento × real, reboque, peças, mão de obra, despesas, documentos (com upload), propostas e venda |
 | Financeiro | Contas a pagar e a receber, pagamentos e saldos |
 | Configurações | Metas de lucro/margem/alertas e cadastro de leilões (reboque padrão, taxas fixas, incremento) |
+
+## Privacidade e segurança
+
+- `robots.txt` e `<meta name="robots" content="noindex">`: sistema privado, fora dos buscadores.
+- Content-Security-Policy (aplicada no build, em `vite.config.js`): só executa código próprio e só se conecta ao Supabase do projeto.
+- `404.html` leva de volta ao início; HTTPS é obrigatório no GitHub Pages.
+- Prévia de link (Open Graph) com `og-image.png` ao compartilhar no WhatsApp.
+- Sem Google Analytics: nenhum dado de uso é enviado a terceiros.

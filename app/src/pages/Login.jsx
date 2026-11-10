@@ -43,7 +43,6 @@ export default function Login() {
           <button className="btn-primary" disabled={busy}>{busy ? 'Entrando…' : 'Entrar'}</button>
           <button type="button" className="btn-ghost btn-sm" onClick={reset}>Esqueci minha senha</button>
         </div>
-        <p className="muted small" style={{ textAlign: 'center', marginTop: 18 }}>AUCTION • RECONDITIONING • INVENTORY • SALES</p>
       </form>
     </div>
   )
