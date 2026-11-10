@@ -297,11 +297,30 @@ function InfoCard({ opp }) {
   )
 }
 
+const TITLE_HELP = {
+  clean: 'Título normal. Pode registrar e revender sem inspeção especial.',
+  salvage: 'Carro declarado perda total. Para revender rodando, normalmente precisa consertar e passar na inspeção do estado para virar Rebuilt.',
+  rebuilt: 'Já foi salvage, foi consertado e aprovado na inspeção. Pode registrar e revender, mas vale menos que um clean.',
+  flood: 'Dano por enchente. Muito difícil de revender: em geral evite.',
+  certificate_of_destruction: 'Só pode ser vendido como peças/sucata. Não pode voltar a rodar.',
+  parts_only: 'Só para peças. Não pode ser registrado para rodar.',
+  bill_of_sale_only: 'Sem título, só recibo. Registrar pode ser difícil ou impossível dependendo do estado.',
+  lemon_buyback: 'Recomprado pela fábrica por defeito. Pode revender, informando o comprador.',
+}
+
 function TitleCard({ opp, onChange, readOnly }) {
   const [run, busy] = useAction()
-  const [notes, setNotes] = useState(opp.title_notes || '')
+  const [f, setF] = useState({ title_status: opp.title_status || 'unknown', title_state: opp.title_state || '', notes: opp.title_notes || '' })
+  const set = (k) => (e) => setF((s) => ({ ...s, [k]: e.target.value }))
   const verify = async () => {
-    await run(() => q(supabase.from('auction_opportunities').update({ title_verified: true, title_notes: notes || null }).eq('id', opp.id)), 'Título validado')
+    await run(() => q(supabase.from('auction_opportunities').update({
+      title_status: f.title_status, title_state: f.title_state.trim().toUpperCase() || null,
+      title_verified: true, title_notes: f.notes || null,
+    }).eq('id', opp.id)), 'Título validado')
+    onChange()
+  }
+  const reopen = async () => {
+    await run(() => q(supabase.from('auction_opportunities').update({ title_verified: false, title_verified_at: null, title_verified_by: null }).eq('id', opp.id)), 'Validação reaberta')
     onChange()
   }
   if (opp.title_verified) {
@@ -309,20 +328,33 @@ function TitleCard({ opp, onChange, readOnly }) {
       <div className="alert-box success">
         ✓ Título <b>{label('title_status', opp.title_status)}</b>{opp.title_state && ` (${opp.title_state})`} validado em {date(opp.title_verified_at)}.
         {opp.title_notes && <div className="small" style={{ marginTop: 4 }}>{opp.title_notes}</div>}
+        {!readOnly && ['analyzing', 'awaiting_inspection', 'awaiting_quote'].includes(opp.status) && <div style={{ marginTop: 6 }}><button className="btn-ghost btn-sm" onClick={reopen} disabled={busy}>Corrigir título</button></div>}
       </div>
     )
   }
+  const unknown = f.title_status === 'unknown'
   return (
     <div className="card stack" style={{ borderLeft: '4px solid var(--warning)' }}>
-      <h2>Título: {label('title_status', opp.title_status)}</h2>
+      <h2>Validar o título</h2>
       <p className="small muted" style={{ margin: 0 }}>
-        Antes de aprovar ou comprar, confirme se esse tipo de título permite registrar e revender o carro no seu estado.
-        Salvage, rebuilt e outros títulos têm regras diferentes.
+        Confira o tipo de título no anúncio do leilão: no Capital Auto Auction fica nos detalhes do lote, em “Title” ou “Doc Type”,
+        e às vezes nos avisos (“announcements”). Se não estiver claro, pergunte ao leilão antes de dar lance.
       </p>
       {!readOnly && <>
-        <Field label="Observações da validação"><input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Ex.: salvage NH, precisa de inspeção para rebuilt" /></Field>
-        <button onClick={verify} disabled={busy || opp.title_status === 'unknown'}>
-          {opp.title_status === 'unknown' ? 'Informe o tipo de título (Editar)' : 'Confirmar que o título foi validado'}
+        <div className="form-grid">
+          <Field label="Tipo de título">
+            <select value={f.title_status} onChange={set('title_status')}>
+              {options('title_status').map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+            </select>
+          </Field>
+          <Field label="Estado do título"><input value={f.title_state} onChange={set('title_state')} maxLength={2} placeholder="NH" style={{ textTransform: 'uppercase' }} /></Field>
+        </div>
+        {TITLE_HELP[f.title_status] && (
+          <div className={`alert-box small ${['clean', 'rebuilt'].includes(f.title_status) ? 'info' : 'warning'}`}>{TITLE_HELP[f.title_status]}</div>
+        )}
+        <Field label="Observações (opcional)"><input value={f.notes} onChange={set('notes')} placeholder="Ex.: salvage NH, precisa de inspeção para rebuilt" /></Field>
+        <button onClick={verify} disabled={busy || unknown}>
+          {unknown ? 'Escolha o tipo de título acima' : 'Confirmar título e validar'}
         </button>
       </>}
     </div>
