@@ -80,7 +80,7 @@ function Shell() {
   return (
     <div className="shell">
       <aside className="sidebar">
-        <div className="brand"><img src="./icon.svg" alt="" /><Brand /></div>
+        <div className="brand"><Brand /></div>
         <nav className="nav">
           {menu.map((m) => (
             <NavLink key={m.to} to={m.to} end={m.end}><Icon name={m.icon} />{m.text}</NavLink>

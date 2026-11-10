@@ -24,11 +24,11 @@ export function Icon({ name, size }) {
   )
 }
 
+// Logo oficial (fundo preto) dentro de uma faixa escura com cantos arredondados
 export function Brand({ big }) {
   return (
-    <div>
-      <div className="brand-name"><span className="car">CAR</span> <span className="king">KING</span></div>
-      <div className="brand-sub" style={big ? undefined : { fontSize: 9 }}>AUTO SALES</div>
+    <div className={`logo-banner ${big ? 'big' : ''}`}>
+      <img src="./logo.webp" alt="Car King Auto Sales" width="900" height="265" />
     </div>
   )
 }

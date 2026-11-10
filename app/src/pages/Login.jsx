@@ -26,10 +26,7 @@ export default function Login() {
   return (
     <div className="login">
       <form className="login-card" onSubmit={submit}>
-        <div className="login-logo">
-          <img src="./icon.svg" alt="" />
-          <Brand big />
-        </div>
+        <div className="login-logo"><Brand big /></div>
         <div className="card stack">
           <h2>Entrar</h2>
           <Field label="E-mail">

@@ -67,8 +67,10 @@ h3 { font-size: 14px; }
   width: var(--sidebar); flex-shrink: 0; background: var(--surface); border-right: 1px solid var(--border);
   position: sticky; top: 0; height: 100vh; display: flex; flex-direction: column; padding: 20px 12px;
 }
-.brand { display: flex; align-items: center; gap: 10px; padding: 0 8px 22px; }
-.brand img { width: 30px; height: 30px; border-radius: 7px; }
+.brand { padding: 0 0 20px; }
+.logo-banner { background: #000; border-radius: 10px; padding: 10px 12px; line-height: 0; }
+.logo-banner img { width: 100%; height: auto; display: block; }
+.logo-banner.big { border-radius: 14px; padding: 22px 26px; }
 .brand-name { font-family: 'Montserrat', var(--font); font-style: italic; font-weight: 800; font-size: 18px; letter-spacing: .3px; line-height: 1.1; }
 .brand-name .car { color: #55585E; }
 .brand-name .king { color: var(--gold); }
@@ -217,9 +219,7 @@ tfoot td { font-weight: 600; border-bottom: 0; }
 .login { min-height: 100%; display: flex; align-items: center; justify-content: center; padding: 24px 16px; background: var(--bg); }
 .login-card { width: 100%; max-width: 380px; }
 .login-logo { text-align: center; margin-bottom: 24px; }
-.login-logo .brand-name { font-size: 30px; }
-.login-logo .brand-sub { font-size: 11px; letter-spacing: 5px; margin-top: 2px; }
-.login-logo img { width: 56px; height: 56px; border-radius: 12px; margin-bottom: 10px; }
+
 
 /* =============================================================================
    Celular
