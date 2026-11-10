@@ -141,6 +141,10 @@ vendedor vê o lucro de uma proposta calculado com **todos** os custos, mesmo se
 O sistema **não presume** que títulos diferentes têm as mesmas regras de circulação ou revenda: a
 oportunidade só pode ser aprovada ou comprada depois que alguém marca `title_verified`.
 
+**Reboque padrão:** cada leilão (`auction_sources.default_transport_cost`) guarda o custo de reboque por
+carro. Simulações sem transporte informado usam esse valor; na compra é criada uma ordem de transporte
+*quoted* com o valor previsto, que só vira custo real quando o valor pago é informado.
+
 Automatismos: transporte `booked` → veículo *Aguardando retirada*; `picked_up`/`in_transit` → *Em transporte*;
 `delivered` → *Recebido*; `start_inspection` → *Em inspeção*; venda concluída → *Vendido*.
 

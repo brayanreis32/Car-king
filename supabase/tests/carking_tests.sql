@@ -107,6 +107,22 @@ begin
   perform pg_temp.eq('operação inviável', m.binding_rule, 'not_viable');
 end $$;
 
+-- Reboque padrão do leilão ($200) entra quando o transporte não é informado
+update auction_sources set default_transport_cost = 200, default_transport_provider = 'Reboque Padrão'
+where name = 'Leilão Teste';
+do $$
+declare
+  v_src uuid := (select id from auction_sources where name = 'Leilão Teste');
+  r jsonb;
+begin
+  r := public.simulate_purchase(p_expected_sale_price => 12000, p_planned_bid => 4000, p_source_id => v_src);
+  perform pg_temp.eq('simulação usa reboque padrão $200', (r->>'transport_cost')::numeric, 200.00);
+  r := public.simulate_purchase(p_expected_sale_price => 12000, p_planned_bid => 4000, p_source_id => v_src, p_transport_cost => 450);
+  perform pg_temp.eq('reboque informado substitui o padrão', (r->>'transport_cost')::numeric, 450.00);
+  r := public.simulate_purchase(p_expected_sale_price => 12000, p_planned_bid => 4000, p_source_id => v_src, p_transport_cost => 0);
+  perform pg_temp.eq('transporte zero continua zero', (r->>'transport_cost')::numeric, 0.00);
+end $$;
+
 -- ---------------------------------------------------------------------------
 -- 4. Oportunidade, validação do título, simulação e compra
 -- ---------------------------------------------------------------------------
@@ -166,13 +182,24 @@ select pg_temp.must_fail('veículo sem aquisição',
   $q$insert into vehicles (vin, make, model, year) values ('1HGCM82633A004352', 'Honda', 'Accord', 2003)$q$);
 select pg_temp.must_fail('excluir veículo', $q$delete from vehicles$q$);
 
+-- Simulação salva sem transporte informado usa o padrão do leilão
+insert into auction_simulations (opportunity_id, name, expected_sale_price, planned_bid)
+select id, 'Sem transporte informado', 12000, 4000 from auction_opportunities where lot_number = '12345678';
+select pg_temp.eq('simulação salva usa reboque padrão',
+  (select transport_cost from auction_simulations where name = 'Sem transporte informado'), 200.00);
+delete from auction_simulations where name = 'Sem transporte informado';
+
 -- ---------------------------------------------------------------------------
 -- 5. Transporte, inspeção, peças, mão de obra e despesas
 -- ---------------------------------------------------------------------------
 insert into suppliers (name, supplier_type) values ('Auto Parts Co', 'parts'), ('Body Shop Miami', 'body_shop'), ('Fast Carrier', 'transport');
 
-insert into transport_orders (vehicle_id, supplier_id, carrier_name, estimated_cost, status)
-select v.id, s.id, 'Fast Carrier', 350, 'booked' from vehicles v, suppliers s where s.name = 'Fast Carrier';
+select pg_temp.eq('reboque previsto criado na compra',
+  (select estimated_cost || '/' || status from transport_orders), '350.00/quoted');
+select pg_temp.eq('reboque previsto não gera conta a pagar',
+  (select count(*) from accounts_payable where source_type = 'transport_order'), 0::bigint);
+update transport_orders set supplier_id = (select id from suppliers where name = 'Fast Carrier'),
+                            carrier_name = 'Fast Carrier', status = 'booked';
 select pg_temp.eq('transporte agendado → aguardando retirada', (select status::text from vehicles), 'awaiting_pickup');
 update transport_orders set status = 'delivered', actual_cost = 400;
 select pg_temp.eq('transporte entregue → recebido', (select status::text from vehicles), 'received');
