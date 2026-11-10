@@ -307,6 +307,47 @@ select pg_temp.eq('histórico de status preservado', (select count(*) >= 5 from 
 select pg_temp.eq('auditoria registrada', (select count(*) > 0 from audit_logs where table_name = 'sales'), true);
 
 -- ---------------------------------------------------------------------------
+-- 7b. Extrato bancário: importação e conciliação
+-- ---------------------------------------------------------------------------
+insert into bank_statement_lines (account_id, posted_date, amount, description, reference)
+select a.id, x.d::date, x.v, x.t, x.r from financial_accounts a,
+  (values ('2026-11-12', -400.00, 'FAST CARRIER TOWING', 'r1'),
+          ('2026-11-13', 6800.00, 'ZELLE FROM JOHN BUYER', 'r2'),
+          ('2026-11-13', -35.00, 'MONTHLY SERVICE FEE', 'r3'),
+          ('2026-11-14', 1000.00, 'DEPOSIT OWNER', 'r4')) as x(d, v, t, r)
+where a.name = 'Operating';
+insert into bank_statement_lines (account_id, posted_date, amount, description, reference)
+select a.id, '2026-11-12', -400.00, 'FAST CARRIER TOWING', 'r1' from financial_accounts a where a.name = 'Operating'
+on conflict (account_id, reference) do nothing;
+select pg_temp.eq('importar o mesmo extrato não duplica', (select count(*) from bank_statement_lines), 4::bigint);
+select pg_temp.eq('sugestão: saída de $400 = conta do reboque',
+  (select match_description from bank_line_suggestions where description = 'FAST CARRIER TOWING'), 'Transporte — Fast Carrier');
+select pg_temp.eq('sugestão: entrada de $6.800 = saldo da venda',
+  (select match_kind from bank_line_suggestions where description = 'ZELLE FROM JOHN BUYER'), 'receivable');
+
+select bank_match_payable((select line_id from bank_line_suggestions where description = 'FAST CARRIER TOWING'),
+                          (select match_id from bank_line_suggestions where description = 'FAST CARRIER TOWING')) \g /dev/null
+select pg_temp.eq('reboque pago pelo extrato', (select status from accounts_payable where source_type = 'transport_order'), 'paid');
+select pg_temp.must_fail('mesmo lançamento não concilia duas vezes',
+  $q$select bank_record_income((select id from bank_statement_lines where description = 'FAST CARRIER TOWING'))$q$);
+
+select bank_match_receivable((select line_id from bank_line_suggestions where description = 'ZELLE FROM JOHN BUYER'),
+                             (select match_id from bank_line_suggestions where description = 'ZELLE FROM JOHN BUYER')) \g /dev/null
+select pg_temp.eq('venda quitada pelo extrato', (select status from accounts_receivable), 'received');
+
+select bank_create_expense((select id from bank_statement_lines where description = 'MONTHLY SERVICE FEE'),
+                           (select id from expense_categories where cost_group = 'other'), 'Tarifa bancária') \g /dev/null
+select pg_temp.eq('tarifa vira despesa geral paga',
+  (select ap.status from accounts_payable ap join expenses e on e.id = ap.source_id where e.description = 'Tarifa bancária'), 'paid');
+
+select bank_record_income((select id from bank_statement_lines where description = 'DEPOSIT OWNER'), 'Aporte do sócio') \g /dev/null
+select pg_temp.eq('nenhum lançamento pendente', (select count(*) from bank_statement_lines where status = 'pending'), 0::bigint);
+-- 20631 − 400 + 6800 − 35 + 1000
+select pg_temp.eq('saldo da conta bate com o banco', (select balance from financial_account_balances), 27996.00);
+select pg_temp.must_fail('conciliado não pode ser alterado',
+  $q$update bank_statement_lines set amount = 1 where description = 'DEPOSIT OWNER'$q$);
+
+-- ---------------------------------------------------------------------------
 -- 8. Permissões e isolamento entre empresas
 -- ---------------------------------------------------------------------------
 reset role;
