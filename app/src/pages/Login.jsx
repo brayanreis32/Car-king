@@ -24,9 +24,11 @@ export default function Login() {
   }
 
   return (
-    <div className="login-split">
+    <div className="login-split login-dark">
       <div className="login-brand">
-        <img src="./logo.jpg" alt="Car King Auto Sales" width="2000" height="667" />
+        <div className="logo-shine">
+          <img src="./logo-dark-lg.webp" alt="Car King Auto Sales" width="1100" height="317" />
+        </div>
       </div>
       <div className="login-side">
         <form className="login-card" onSubmit={submit}>
