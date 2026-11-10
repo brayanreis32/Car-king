@@ -73,7 +73,7 @@ const MENU = [
   { to: '/veiculos', icon: 'car', text: 'Veículos', short: 'Veículos', module: 'vehicles' },
   { to: '/financeiro', icon: 'money', text: 'Financeiro', short: 'Financeiro', module: 'finance' },
   { to: '/funcionarios', icon: 'users', text: 'Funcionários', short: 'Equipe', module: 'employees', desktopOnly: true },
-  { to: '/configuracoes', icon: 'settings', text: 'Configurações', short: 'Ajustes', module: 'settings' },
+  { to: '/configuracoes', icon: 'settings', text: 'Configurações', short: 'Ajustes', module: 'settings', bottom: true },
 ]
 
 function Shell() {
@@ -85,7 +85,13 @@ function Shell() {
       <aside className="sidebar">
         <div className="brand"><img src="./logo-dark.webp" alt="Car King Auto Sales" width="600" height="173" /></div>
         <nav className="nav">
-          {menu.map((m) => (
+          {menu.filter((m) => !m.bottom).map((m) => (
+            <NavLink key={m.to} to={m.to} end={m.end}><Icon name={m.icon} />{m.text}</NavLink>
+          ))}
+        </nav>
+        {/* Configurações fica fixa embaixo, junto do usuário */}
+        <nav className="nav nav-bottom">
+          {menu.filter((m) => m.bottom).map((m) => (
             <NavLink key={m.to} to={m.to} end={m.end}><Icon name={m.icon} />{m.text}</NavLink>
           ))}
         </nav>
