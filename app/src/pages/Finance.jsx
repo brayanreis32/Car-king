@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { date, money, q, rpc, supabase, toNum, today } from '../lib.js'
 import { Badge, Empty, ErrorBox, Field, Kpi, Modal, MoneyInput, Select, Spinner, Tabs, useAction, useLoad } from '../components/ui.jsx'
+import { FilePick, uploadAll } from '../components/attachments.jsx'
+import { useApp } from '../App.jsx'
 
 export default function Finance() {
   const [tab, setTab] = useState('pay')
@@ -64,6 +66,8 @@ function PayModal({ kind, row, accounts, onClose, onDone }) {
   const [f, setF] = useState({ account_id: accounts[0]?.account_id || '', new_account: accounts.length ? '' : 'Banco', amount: row.balance, date: today() })
   const set = (k) => (v) => setF((s) => ({ ...s, [k]: v }))
   const [run, busy] = useAction()
+  const { company } = useApp()
+  const [files, setFiles] = useState([])
   const amount = toNum(f.amount)
   const save = async () => {
     await run(async () => {
@@ -72,14 +76,16 @@ function PayModal({ kind, row, accounts, onClose, onDone }) {
         const a = await q(supabase.from('financial_accounts').insert({ name: f.new_account || 'Banco', account_type: 'bank' }).select('id').single())
         accountId = a.id
       }
+      let txId
       if (kind === 'pay') {
-        await rpc('pay_payable', { p_payable_id: row.id, p_account_id: accountId, p_amount: amount, p_date: f.date })
+        txId = await rpc('pay_payable', { p_payable_id: row.id, p_account_id: accountId, p_amount: amount, p_date: f.date })
       } else {
-        await q(supabase.from('financial_transactions').insert({
+        txId = (await q(supabase.from('financial_transactions').insert({
           account_id: accountId, direction: 'in', amount, transaction_date: f.date, description: row.description,
           vehicle_id: row.vehicle_id, customer_id: row.customer_id, receivable_id: row.id,
-        }))
+        }).select('id').single())).id
       }
+      await uploadAll(files, { companyId: company.id, entityType: 'financial_transaction', entityId: txId, vehicleId: row.vehicle_id })
     }, kind === 'pay' ? 'Pagamento registrado' : 'Recebimento registrado')
     onDone()
   }
@@ -96,6 +102,7 @@ function PayModal({ kind, row, accounts, onClose, onDone }) {
             : <Field label="Nome da conta (será criada)"><input value={f.new_account} onChange={(e) => set('new_account')(e.target.value)} placeholder="Ex.: Bank of America" /></Field>}
         </div>
         {amount > Number(row.balance) && <div className="alert-box warning">O valor passa do saldo em aberto ({money(row.balance, true)}).</div>}
+        <FilePick files={files} onChange={setFiles} label="Anexar comprovante (opcional)" />
       </div>
     </Modal>
   )

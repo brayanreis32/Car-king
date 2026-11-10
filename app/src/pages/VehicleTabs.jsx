@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { date, label, money, options, PART_STATUS_TONE, q, rpc, supabase, toNum, today } from '../lib.js'
 import { Badge, Empty, ErrorBox, Field, Icon, Kpi, Modal, MoneyInput, Select, Spinner, useAction, useLoad } from '../components/ui.jsx'
 import { useApp } from '../App.jsx'
+import { Attachments, AttachmentRow, AttachmentsButton, FilePick, uploadAll, useAttachmentCounts } from '../components/attachments.jsx'
 
 // Fornecedores com opção de cadastrar na hora
 function SupplierSelect({ value, onChange, type = 'other' }) {
@@ -66,6 +67,8 @@ function TransportModal({ vehicle, t, onClose, onDone }) {
   })
   const set = (k) => (v) => setF((s) => ({ ...s, [k]: v }))
   const [run, busy] = useAction()
+  const { company } = useApp()
+  const [files, setFiles] = useState([])
   const markDelivered = () => setF((s) => ({ ...s, status: 'delivered', actual_cost: s.actual_cost === '' ? s.estimated_cost : s.actual_cost }))
   const save = async () => {
     const row = {
@@ -74,7 +77,12 @@ function TransportModal({ vehicle, t, onClose, onDone }) {
       pickup_date: f.pickup_date || null, expected_delivery_date: f.expected_delivery_date || null,
       estimated_cost: toNum(f.estimated_cost) ?? 0, actual_cost: toNum(f.actual_cost), status: f.status, notes: f.notes || null,
     }
-    await run(() => t.id ? q(supabase.from('transport_orders').update(row).eq('id', t.id)) : q(supabase.from('transport_orders').insert(row)), 'Reboque salvo')
+    await run(async () => {
+      const saved = t.id
+        ? await q(supabase.from('transport_orders').update(row).eq('id', t.id).select('id').single())
+        : await q(supabase.from('transport_orders').insert(row).select('id').single())
+      await uploadAll(files, { companyId: company.id, entityType: 'transport_order', entityId: saved.id, vehicleId: vehicle.id })
+    }, 'Reboque salvo')
     onDone()
   }
   return (
@@ -92,6 +100,9 @@ function TransportModal({ vehicle, t, onClose, onDone }) {
           <Field label="Previsão de entrega"><input type="date" value={f.expected_delivery_date} onChange={(e) => set('expected_delivery_date')(e.target.value)} /></Field>
           <Field label="Telefone"><input type="tel" value={f.contact_phone} onChange={(e) => set('contact_phone')(e.target.value)} /></Field>
         </div>
+        {t.id
+          ? <Attachments entityType="transport_order" entityId={t.id} vehicleId={vehicle.id} title="Recibo do reboque (opcional)" />
+          : <FilePick files={files} onChange={setFiles} label="Anexar recibo (opcional)" />}
         <p className="small muted" style={{ margin: 0 }}>O valor pago entra no custo do carro e em contas a pagar. Entregue = carro muda para “Recebido”.</p>
       </div>
     </Modal>
@@ -113,6 +124,7 @@ export function Parts({ vehicle, onChange }) {
   }, [vehicle.id])
   const [editing, setEditing] = useState(null)
   const [run] = useAction()
+  const [counts, reloadCounts] = useAttachmentCounts(vehicle.id, 'part')
   const sold = vehicle.status === 'sold'
   if (loading) return <Spinner />
   if (error) return <ErrorBox error={error} />
@@ -154,6 +166,7 @@ export function Parts({ vehicle, onChange }) {
                     {p.actual_total !== null ? <b>{money(p.actual_total)}</b> : <span className="muted">est. {money(p.estimated_total)}</span>}
                   </div>
                 </div>
+                <AttachmentsButton entityType="part" entityId={p.id} vehicleId={vehicle.id} count={counts[p.id]} title={`Nota da peça: ${p.name}`} onChange={reloadCounts} />
                 {!sold && PART_FLOW[p.status] && (
                   <button className="btn-sm" onClick={(e) => { e.stopPropagation(); advance(p) }} title={`Marcar como ${label('part_status', PART_FLOW[p.status])}`}>
                     → {label('part_status', PART_FLOW[p.status])}
@@ -164,7 +177,7 @@ export function Parts({ vehicle, onChange }) {
           </div>
         )}
       </div>
-      {editing && <PartModal vehicle={vehicle} part={editing} onClose={() => setEditing(null)} onDone={() => { setEditing(null); reload(); onChange() }} />}
+      {editing && <PartModal vehicle={vehicle} part={editing} onClose={() => { setEditing(null); reloadCounts() }} onDone={() => { setEditing(null); reload(); reloadCounts(); onChange() }} />}
     </div>
   )
 }
@@ -178,6 +191,8 @@ function PartModal({ vehicle, part, onClose, onDone }) {
   })
   const set = (k) => (v) => setF((s) => ({ ...s, [k]: v }))
   const [run, busy] = useAction()
+  const { company } = useApp()
+  const [files, setFiles] = useState([])
   const needsPrice = !['identified', 'awaiting_quote', 'to_buy'].includes(f.status)
   const save = async () => {
     const row = {
@@ -186,7 +201,12 @@ function PartModal({ vehicle, part, onClose, onDone }) {
       estimated_unit_price: toNum(f.estimated_unit_price) ?? 0, actual_unit_price: toNum(f.actual_unit_price), status: f.status,
       expected_delivery_date: f.expected_delivery_date || null, refund_amount: toNum(f.refund_amount) ?? 0, notes: f.notes || null,
     }
-    await run(() => part.id ? q(supabase.from('parts').update(row).eq('id', part.id)) : q(supabase.from('parts').insert(row)), 'Peça salva')
+    await run(async () => {
+      const saved = part.id
+        ? await q(supabase.from('parts').update(row).eq('id', part.id).select('id').single())
+        : await q(supabase.from('parts').insert(row).select('id').single())
+      await uploadAll(files, { companyId: company.id, entityType: 'part', entityId: saved.id, vehicleId: vehicle.id })
+    }, 'Peça salva')
     onDone()
   }
   return (
@@ -209,6 +229,10 @@ function PartModal({ vehicle, part, onClose, onDone }) {
         <Field label="Observações" full><input value={f.notes} onChange={(e) => set('notes')(e.target.value)} /></Field>
       </div>
       {needsPrice && f.actual_unit_price === '' && <div className="alert-box warning" style={{ marginTop: 12 }}>Informe o preço pago para marcar como {label('part_status', f.status)}.</div>}
+      <div className="divider" />
+      {part.id
+        ? <Attachments entityType="part" entityId={part.id} vehicleId={vehicle.id} title="Nota fiscal / invoice (opcional)" />
+        : <FilePick files={files} onChange={setFiles} label="Anexar nota fiscal (opcional)" />}
     </Modal>
   )
 }
@@ -229,6 +253,7 @@ export function Labor({ vehicle, onChange }) {
   const [paying, setPaying] = useState(null)
   const [run] = useAction()
   const sold = vehicle.status === 'sold'
+  const [counts, reloadCounts] = useAttachmentCounts(vehicle.id, 'repair_item')
   if (loading) return <Spinner />
   if (error) return <ErrorBox error={error} />
   const { items, entries, orders } = data
@@ -265,6 +290,7 @@ export function Labor({ vehicle, onChange }) {
                   <div>prev. {money(i.estimated_cost)}</div>
                   <div className={Number(i.actual_cost) > Number(i.estimated_cost) ? 'neg' : 'pos'}><b>pago {money(i.actual_cost)}</b></div>
                 </div>
+                <AttachmentsButton entityType="repair_item" entityId={i.repair_item_id} vehicleId={vehicle.id} count={counts[i.repair_item_id]} title={`Invoices: ${i.service}`} onChange={reloadCounts} />
                 {!sold && <div className="row" style={{ gap: 6 }}>
                   <button className="btn-sm" onClick={() => setPaying(i)}>$ Lançar</button>
                   {i.status !== 'completed' && i.status !== 'cancelled' && <button className="btn-sm" onClick={() => complete(i)}>Concluir</button>}
@@ -275,7 +301,7 @@ export function Labor({ vehicle, onChange }) {
         )}
       </div>
       {adding && <ServiceModal vehicle={vehicle} orders={orders} onClose={() => setAdding(false)} onDone={() => { setAdding(false); reload(); onChange() }} />}
-      {paying && <LaborEntryModal vehicle={vehicle} item={paying} orders={orders} onClose={() => setPaying(null)} onDone={() => { setPaying(null); reload(); onChange() }} />}
+      {paying && <LaborEntryModal vehicle={vehicle} item={paying} orders={orders} onClose={() => setPaying(null)} onDone={() => { setPaying(null); reload(); reloadCounts(); onChange() }} />}
     </div>
   )
 }
@@ -323,13 +349,17 @@ function LaborEntryModal({ vehicle, item, orders, onClose, onDone }) {
   const set = (k) => (v) => setF((s) => ({ ...s, [k]: v }))
   const [run, busy] = useAction()
   const total = mode === 'flat' ? toNum(f.flat_amount) : (toNum(f.hours) ?? 0) * (toNum(f.hourly_rate) ?? 0)
+  const { company } = useApp()
+  const [files, setFiles] = useState([])
   const save = async () => {
-    await run(() => q(supabase.from('labor_entries').insert({
+    await run(async () => { await q(supabase.from('labor_entries').insert({
       vehicle_id: vehicle.id, repair_item_id: item.repair_item_id, description: item.service, work_date: f.work_date,
       supplier_id: f.supplier_id || null, worker_name: order?.mechanic_name || null, invoice_number: f.invoice_number || null,
       flat_amount: mode === 'flat' ? toNum(f.flat_amount) : null,
       hours: mode === 'hours' ? toNum(f.hours) : null, hourly_rate: mode === 'hours' ? toNum(f.hourly_rate) : null,
-    })), 'Mão de obra lançada')
+    }))
+      await uploadAll(files, { companyId: company.id, entityType: 'repair_item', entityId: item.repair_item_id, vehicleId: vehicle.id })
+    }, 'Mão de obra lançada')
     onDone()
   }
   return (
@@ -351,6 +381,7 @@ function LaborEntryModal({ vehicle, item, orders, onClose, onDone }) {
           <Field label="Pago a (oficina)"><SupplierSelect value={f.supplier_id} onChange={set('supplier_id')} type="body_shop" /></Field>
           <Field label="Nº invoice"><input value={f.invoice_number} onChange={(e) => set('invoice_number')(e.target.value)} /></Field>
         </div>
+        <FilePick files={files} onChange={setFiles} label="Anexar invoice da oficina (opcional)" />
         <p className="small muted" style={{ margin: 0 }}>Com oficina informada, o valor também entra em contas a pagar.</p>
       </div>
     </Modal>
@@ -372,6 +403,7 @@ export function Expenses({ vehicle, onChange }) {
   }, [vehicle.id])
   const [adding, setAdding] = useState(false)
   const [run] = useAction()
+  const [counts, reloadCounts] = useAttachmentCounts(vehicle.id, 'expense')
   if (loading) return <Spinner />
   if (error) return <ErrorBox error={error} />
   const active = data.expenses.filter((e) => e.status !== 'cancelled')
@@ -399,6 +431,7 @@ export function Expenses({ vehicle, onChange }) {
                   <div className="muted small">{e.expense_categories?.name} · {date(e.expense_date)}{e.suppliers?.name && ` · ${e.suppliers.name}`}</div>
                 </div>
                 <div className="num">{money(e.amount)}</div>
+                <AttachmentsButton entityType="expense" entityId={e.id} vehicleId={vehicle.id} count={counts[e.id]} title={`Comprovante: ${e.description}`} onChange={reloadCounts} />
                 {e.status !== 'cancelled' && <button className="btn-ghost btn-sm" onClick={() => cancel(e)} aria-label="Cancelar"><Icon name="trash" /></button>}
               </div>
             ))}
@@ -406,7 +439,7 @@ export function Expenses({ vehicle, onChange }) {
         )}
       </div>
       <p className="small muted" style={{ margin: 0 }}>Reboque, peças e mão de obra ficam nas próprias abas para não contar o custo duas vezes.</p>
-      {adding && <ExpenseModal vehicle={vehicle} categories={data.categories} onClose={() => setAdding(false)} onDone={() => { setAdding(false); reload(); onChange() }} />}
+      {adding && <ExpenseModal vehicle={vehicle} categories={data.categories} onClose={() => setAdding(false)} onDone={() => { setAdding(false); reload(); reloadCounts(); onChange() }} />}
     </div>
   )
 }
@@ -417,11 +450,16 @@ function ExpenseModal({ vehicle, categories, onClose, onDone }) {
   const [f, setF] = useState({ category_id: cats[0]?.id || '', description: '', amount: '', expense_date: today(), supplier_id: '' })
   const set = (k) => (v) => setF((s) => ({ ...s, [k]: v }))
   const [run, busy] = useAction()
+  const { company } = useApp()
+  const [files, setFiles] = useState([])
   const save = async () => {
-    await run(() => q(supabase.from('expenses').insert({
-      vehicle_id: vehicle.id, category_id: f.category_id, description: f.description || cats.find((c) => c.id === f.category_id)?.name,
-      amount: toNum(f.amount), expense_date: f.expense_date, supplier_id: f.supplier_id || null,
-    })), 'Despesa lançada')
+    await run(async () => {
+      const saved = await q(supabase.from('expenses').insert({
+        vehicle_id: vehicle.id, category_id: f.category_id, description: f.description || cats.find((c) => c.id === f.category_id)?.name,
+        amount: toNum(f.amount), expense_date: f.expense_date, supplier_id: f.supplier_id || null,
+      }).select('id').single())
+      await uploadAll(files, { companyId: company.id, entityType: 'expense', entityId: saved.id, vehicleId: vehicle.id })
+    }, 'Despesa lançada')
     onDone()
   }
   return (
@@ -433,6 +471,8 @@ function ExpenseModal({ vehicle, categories, onClose, onDone }) {
         <Field label="Data"><input type="date" value={f.expense_date} onChange={(e) => set('expense_date')(e.target.value)} /></Field>
         <Field label="Fornecedor"><SupplierSelect value={f.supplier_id} onChange={set('supplier_id')} /></Field>
       </div>
+      <div className="divider" />
+      <FilePick files={files} onChange={setFiles} label="Anexar comprovante (opcional)" />
       {sold && <p className="small muted">Carro vendido: só despesas de venda (comissão, transferência…) podem ser lançadas.</p>}
     </Modal>
   )
@@ -444,6 +484,7 @@ function ExpenseModal({ vehicle, categories, onClose, onDone }) {
 export function Documents({ vehicle }) {
   const { company } = useApp()
   const { data, error, loading, reload } = useLoad(() => q(supabase.from('documents').select('*').eq('vehicle_id', vehicle.id).order('created_at')), [vehicle.id])
+  const files = useLoad(() => q(supabase.from('attachments').select('*').eq('vehicle_id', vehicle.id).neq('entity_type', 'document').order('created_at', { ascending: false })), [vehicle.id])
   const [run] = useAction()
   const [adding, setAdding] = useState(false)
   if (loading) return <Spinner />
@@ -463,11 +504,13 @@ export function Documents({ vehicle }) {
     reload()
   }
   const open = async (d) => {
-    const { data: s, error: e } = await supabase.storage.from(d.storage_bucket).createSignedUrl(d.storage_path, 300)
-    if (e) alert(e.message); else window.open(s.signedUrl, '_blank')
+    const w = window.open('', '_blank')
+    const { data: s, error: e } = await supabase.storage.from(d.storage_bucket).createSignedUrl(d.storage_path, 600)
+    if (e) { w?.close(); alert(e.message) } else if (w) w.location.href = s.signedUrl; else window.location.href = s.signedUrl
   }
 
   return (
+    <div className="stack">
     <div className="card pad-0">
       <div className="card-title" style={{ padding: '16px 16px 0' }}>
         <h2>Documentos</h2>
@@ -490,6 +533,13 @@ export function Documents({ vehicle }) {
         </div>
       )}
       {adding && <DocumentModal vehicle={vehicle} onClose={() => setAdding(false)} onDone={() => { setAdding(false); reload() }} />}
+    </div>
+    <div className="card stack" style={{ gap: 10 }}>
+      <div><h2>Notas e comprovantes</h2><div className="muted small">Todos os arquivos anexados neste carro: peças, mão de obra, despesas, reboque e pagamentos.</div></div>
+      {files.loading ? <div className="muted small">Carregando…</div>
+        : (files.data || []).length === 0 ? <div className="muted small">Nenhum arquivo anexado ainda.</div>
+          : files.data.map((a) => <AttachmentRow key={a.id} a={a} showOrigin />)}
+    </div>
     </div>
   )
 }
