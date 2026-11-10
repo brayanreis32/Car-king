@@ -348,6 +348,41 @@ select pg_temp.must_fail('conciliado não pode ser alterado',
   $q$update bank_statement_lines set amount = 1 where description = 'DEPOSIT OWNER'$q$);
 
 -- ---------------------------------------------------------------------------
+-- 7c. Venda parcelada
+-- ---------------------------------------------------------------------------
+select register_direct_purchase('2T1BURHE5JC000101', 'Toyota', 'Corolla', 2018, 'clean', 5000, p_purchase_date => '2026-11-01') \g /dev/null
+select register_sale((select id from vehicles where vin = '2T1BURHE5JC000101'), (select id from customers limit 1), 12000,
+  p_sale_date => '2026-11-10', p_payment_method => 'cash', p_down_payment => 2000,
+  p_down_payment_account_id => (select id from financial_accounts where name = 'Operating'),
+  p_installments => 10, p_installment_frequency => 'monthly') \g /dev/null
+select pg_temp.eq('parcelado sem juros: entrada + 10 parcelas',
+  (select count(*) from accounts_receivable ar join sales s on s.id = ar.sale_id join vehicles v on v.id = s.vehicle_id where v.vin = '2T1BURHE5JC000101'), 11::bigint);
+select pg_temp.eq('parcela de $1.000', (select installment_amount from sales s join vehicles v on v.id = s.vehicle_id where v.vin = '2T1BURHE5JC000101'), 1000.00);
+select pg_temp.eq('soma das contas = preço', (select sum(ar.amount) from accounts_receivable ar join sales s on s.id = ar.sale_id join vehicles v on v.id = s.vehicle_id where v.vin = '2T1BURHE5JC000101'), 12000.00);
+select pg_temp.eq('entrada já recebida', (select ar.status from accounts_receivable ar join sales s on s.id = ar.sale_id join vehicles v on v.id = s.vehicle_id where v.vin = '2T1BURHE5JC000101' and ar.installment_number = 0), 'received');
+select pg_temp.eq('1ª parcela vence 1 mês depois', (select ar.due_date from accounts_receivable ar join sales s on s.id = ar.sale_id join vehicles v on v.id = s.vehicle_id where v.vin = '2T1BURHE5JC000101' and ar.installment_number = 1), '2026-12-10'::date);
+select pg_temp.eq('10ª parcela', (select ar.due_date from accounts_receivable ar join sales s on s.id = ar.sale_id join vehicles v on v.id = s.vehicle_id where v.vin = '2T1BURHE5JC000101' and ar.installment_number = 10), '2027-09-10'::date);
+select pg_temp.eq('lucro do carro usa o preço de venda', (select real_profit from vehicle_profit_analysis where vin = '2T1BURHE5JC000101'), 7000.00);
+
+select register_direct_purchase('2T1BURHE5JC000102', 'Toyota', 'Corolla', 2019, 'clean', 5000) \g /dev/null
+select register_sale((select id from vehicles where vin = '2T1BURHE5JC000102'), (select id from customers limit 1), 12000,
+  p_sale_date => '2026-11-10', p_down_payment => 2000, p_payment_method => 'cash',
+  p_down_payment_account_id => (select id from financial_accounts where name = 'Operating'),
+  p_installments => 12, p_interest_rate_apr => 12) \g /dev/null
+select pg_temp.eq('juros 12% a.a.: parcela (tabela Price)', (select installment_amount from sales s join vehicles v on v.id = s.vehicle_id where v.vin = '2T1BURHE5JC000102'), 888.49);
+select pg_temp.eq('total com juros', (select total_with_interest from sales s join vehicles v on v.id = s.vehicle_id where v.vin = '2T1BURHE5JC000102'), 12661.88);
+select pg_temp.eq('quinzenal/semanal: plano calculado', (select installment_amount from installment_plan(1000, 4, 0, 'weekly')), 250.00);
+
+-- pagar a 1ª parcela
+insert into financial_transactions (account_id, direction, amount, transaction_date, description, receivable_id)
+select a.id, 'in', ar.amount, '2026-12-10', ar.description, ar.id
+from financial_accounts a, accounts_receivable ar join sales s on s.id = ar.sale_id join vehicles v on v.id = s.vehicle_id
+where a.name = 'Operating' and v.vin = '2T1BURHE5JC000101' and ar.installment_number = 1;
+select pg_temp.eq('parcela 1 recebida', (select ar.status from accounts_receivable ar join sales s on s.id = ar.sale_id join vehicles v on v.id = s.vehicle_id where v.vin = '2T1BURHE5JC000101' and ar.installment_number = 1), 'received');
+select pg_temp.must_fail('não cancela venda com parcelas pagas',
+  $q$update sales set status = 'cancelled', cancel_reason = 'teste' where vehicle_id = (select id from vehicles where vin = '2T1BURHE5JC000101')$q$);
+
+-- ---------------------------------------------------------------------------
 -- 8. Permissões e isolamento entre empresas
 -- ---------------------------------------------------------------------------
 reset role;

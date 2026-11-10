@@ -113,7 +113,7 @@ export const LABELS = {
     stale_vehicle: 'Veículo parado', part_late: 'Peça atrasada', budget_overrun: 'Orçamento estourado', profit_below_target: 'Lucro abaixo da meta',
     document_pending: 'Documento pendente', repair_overdue: 'Reparo atrasado', payable_due: 'Conta a pagar', sold_with_balance: 'Vendido com saldo',
   },
-  payment_method: { cash: 'Dinheiro', check: 'Cheque', wire: 'Transferência', zelle: 'Zelle', card: 'Cartão', financing: 'Financiamento', mixed: 'Misto', other: 'Outro' },
+  payment_method: { cash: 'Dinheiro', check: 'Cheque', wire: 'Transferência', zelle: 'Zelle', card: 'Cartão', financing: 'Financiamento bancário', installments: 'Parcelado (próprio)', mixed: 'Misto', other: 'Outro' },
 }
 export const label = (group, value) => LABELS[group]?.[value] ?? value ?? '—'
 export const options = (group) => Object.entries(LABELS[group])

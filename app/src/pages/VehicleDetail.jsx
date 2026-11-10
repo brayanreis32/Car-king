@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { date, label, money, options, pct, q, signedMoney, supabase, toNum, VEHICLE_STATUS_TONE, vehicleName } from '../lib.js'
 import { Badge, ErrorBox, Field, Icon, Kpi, Modal, MoneyInput, Select, Spinner, Tabs, useAction, useLoad } from '../components/ui.jsx'
@@ -12,6 +12,7 @@ export default function VehicleDetail() {
   const { id } = useParams()
   const [params] = useSearchParams()
   const [tab, setTab] = useState(params.get('tab') || 'summary')
+  useEffect(() => { if (params.get('tab')) setTab(params.get('tab')) }, [params])
   const [editingPrices, setEditingPrices] = useState(false)
   const [run, busy] = useAction()
 

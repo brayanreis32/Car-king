@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { date, label, money, options, PART_STATUS_TONE, q, rpc, supabase, toNum, today } from '../lib.js'
 import { Badge, Empty, ErrorBox, Field, Icon, Kpi, Modal, MoneyInput, Select, Spinner, useAction, useLoad } from '../components/ui.jsx'
 import { useApp } from '../App.jsx'
@@ -484,7 +485,7 @@ function ExpenseModal({ vehicle, categories, onClose, onDone }) {
 export function Documents({ vehicle }) {
   const { company } = useApp()
   const { data, error, loading, reload } = useLoad(() => q(supabase.from('documents').select('*').eq('vehicle_id', vehicle.id).order('created_at')), [vehicle.id])
-  const files = useLoad(() => q(supabase.from('attachments').select('*').eq('vehicle_id', vehicle.id).neq('entity_type', 'document').order('created_at', { ascending: false })), [vehicle.id])
+  const files = useLoad(() => q(supabase.from('attachments').select('*').eq('vehicle_id', vehicle.id).neq('entity_type', 'document').neq('kind', 'photo').order('created_at', { ascending: false })), [vehicle.id])
   const [run] = useAction()
   const [adding, setAdding] = useState(false)
   if (loading) return <Spinner />
@@ -575,31 +576,67 @@ export function Sale({ vehicle, pa, onChange }) {
       q(supabase.from('financial_accounts').select('id, name').eq('is_active', true).order('name')),
       q(supabase.from('customers').select('id, full_name, phone').order('full_name')),
     ])
-    let receivable = null
-    if (sale) receivable = await q(supabase.from('accounts_receivable').select('*').eq('sale_id', sale.id).maybeSingle())
-    return { sale, offers, accounts, customers, receivable }
+    let schedule = []
+    if (sale) schedule = await q(supabase.from('accounts_receivable').select('*').eq('sale_id', sale.id).neq('status', 'cancelled').order('installment_number', { nullsFirst: true }).order('due_date'))
+    return { sale, offers, accounts, customers, schedule }
   }, [vehicle.id])
   const [selling, setSelling] = useState(false)
   const [offering, setOffering] = useState(false)
   if (loading) return <Spinner />
   if (error) return <ErrorBox error={error} />
-  const { sale, offers, receivable } = data
+  const { sale, offers, schedule } = data
 
   if (sale) {
+    const remaining = schedule.reduce((t, r) => t + Number(r.balance), 0)
+    const received = schedule.reduce((t, r) => t + Number(r.received_amount), 0)
+    const parcelado = sale.installments > 1
+    const overdue = schedule.filter((r) => r.status !== 'received' && r.due_date < today()).length
+    const FREQ = { monthly: 'mensais', biweekly: 'quinzenais', weekly: 'semanais' }
     return (
       <div className="stack">
         <div className="grid grid-3">
           <Kpi label="Vendido por" value={money(sale.final_price)} hint={date(sale.sale_date)} highlight />
           <Kpi label="Lucro real" value={money(pa?.real_profit)} tone={Number(pa?.real_profit) < 0 ? 'neg' : 'pos'} hint={`Margem ${pa?.real_margin_pct ?? '—'}%`} />
-          <Kpi label="Falta receber" value={money(receivable?.balance)} tone={Number(receivable?.balance) > 0 ? 'warn' : 'pos'} />
+          <Kpi to="/financeiro?tab=receive" label="Falta receber" value={money(remaining)} tone={remaining > 0 ? (overdue ? 'neg' : 'warn') : 'pos'}
+            hint={overdue ? `${overdue} parcela(s) vencida(s)` : `Recebido ${money(received)}`} />
         </div>
         <div className="card">
           <div className="lines">
             <div><span className="muted">Cliente</span><span>{sale.customers?.full_name} {sale.customers?.phone && `· ${sale.customers.phone}`}</span></div>
-            <div><span className="muted">Pagamento</span><span>{label('payment_method', sale.payment_method)} · entrada {money(sale.down_payment)}</span></div>
+            <div><span className="muted">Pagamento</span><span>{parcelado
+              ? `Entrada ${money(sale.down_payment)} + ${sale.installments} parcelas ${FREQ[sale.installment_frequency]} de ${money(sale.installment_amount, true)}${Number(sale.interest_rate_apr) > 0 ? ` (juros ${Number(sale.interest_rate_apr)}% a.a.)` : ' (sem juros)'}`
+              : `${label('payment_method', sale.payment_method)} · recebido na hora ${money(sale.down_payment)}`}</span></div>
+            {parcelado && Number(sale.total_with_interest) !== Number(sale.final_price) && <div><span className="muted">Total a receber com juros</span><span>{money(sale.total_with_interest, true)}</span></div>}
             {sale.notes && <div><span className="muted">Obs.</span><span>{sale.notes}</span></div>}
           </div>
         </div>
+        {schedule.length > 0 && (
+          <div className="card pad-0">
+            <div className="card-title" style={{ padding: '16px 16px 0' }}>
+              <h2>{parcelado ? 'Parcelas' : 'Recebimento'}</h2>
+              <Link to="/financeiro?tab=receive" className="btn btn-sm">Receber no Financeiro</Link>
+            </div>
+            <div className="table-wrap">
+              <table>
+                <thead><tr><th>Parcela</th><th>Vencimento</th><th className="num">Valor</th><th className="num">Recebido</th><th>Situação</th></tr></thead>
+                <tbody>
+                  {schedule.map((r) => {
+                    const late = r.status !== 'received' && r.due_date < today()
+                    return (
+                      <tr key={r.id}>
+                        <td>{r.installment_number === 0 ? 'Entrada' : r.installment_number ? `${r.installment_number}/${sale.installments}` : 'Única'}</td>
+                        <td>{date(r.due_date)}</td>
+                        <td className="num">{money(r.amount, true)}</td>
+                        <td className="num">{money(r.received_amount, true)}</td>
+                        <td><Badge tone={r.status === 'received' ? 'success' : late ? 'error' : r.status === 'partial' ? 'warning' : ''}>{r.status === 'received' ? 'Paga' : late ? 'Vencida' : r.status === 'partial' ? 'Parcial' : 'Em aberto'}</Badge></td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
       </div>
     )
   }
@@ -657,11 +694,20 @@ function SaleModal({ vehicle, pa, accounts, customers, onClose, onDone }) {
   const [f, setF] = useState({
     customer_id: '', new_name: '', new_phone: '', new_email: '', final_price: vehicle.listed_price ?? pa?.expected_sale_price ?? '',
     sale_date: today(), payment_method: 'cash', down_payment: '', account_id: accounts[0]?.id || '', new_account: accounts.length ? '' : 'Caixa', notes: '',
+    mode: 'cash', installments: '12', frequency: 'monthly', first_due_date: '', apr: '',
   })
   const set = (k) => (v) => setF((s) => ({ ...s, [k]: v }))
   const [run, busy] = useAction()
   const price = toNum(f.final_price)
   const profit = pa && price ? price - Number(pa.projected_cost) - Number(pa.projected_selling) : null
+  const parcelado = f.mode === 'installments'
+  const n = Math.max(0, Math.floor(toNum(f.installments) || 0))
+  const down = toNum(f.down_payment) ?? 0
+  const financed = price ? price - down : 0
+  const perYear = f.frequency === 'weekly' ? 52 : f.frequency === 'biweekly' ? 26 : 12
+  const rate = (toNum(f.apr) || 0) / 100 / perYear
+  const pmt = n >= 2 && financed > 0 ? Math.round((rate ? financed * rate / (1 - (1 + rate) ** -n) : financed / n) * 100) / 100 : null
+  const planOk = !parcelado || (pmt && n >= 2 && n <= 120 && down < price)
   const save = async () => {
     await run(async () => {
       const customerId = await ensureCustomer(f)
@@ -672,15 +718,17 @@ function SaleModal({ vehicle, pa, accounts, customers, onClose, onDone }) {
       }
       await rpc('register_sale', {
         p_vehicle_id: vehicle.id, p_customer_id: customerId, p_final_price: price, p_sale_date: f.sale_date,
-        p_payment_method: f.payment_method, p_down_payment: toNum(f.down_payment) ?? 0,
-        p_down_payment_account_id: toNum(f.down_payment) ? accountId : null, p_notes: f.notes || null,
+        p_payment_method: f.payment_method, p_down_payment: down,
+        p_down_payment_account_id: down ? accountId : null, p_notes: f.notes || null,
+        p_installments: parcelado ? n : 1, p_installment_frequency: f.frequency,
+        p_first_due_date: parcelado && f.first_due_date ? f.first_due_date : null, p_interest_rate_apr: parcelado ? (toNum(f.apr) || 0) : 0,
       })
     }, 'Venda registrada')
     onDone()
   }
   return (
     <Modal title="Registrar venda" onClose={onClose}
-      footer={<><button onClick={onClose}>Cancelar</button><button className="btn-primary" onClick={save} disabled={busy || !price || (!f.customer_id && !f.new_name)}>Confirmar venda</button></>}>
+      footer={<><button onClick={onClose}>Cancelar</button><button className="btn-primary" onClick={save} disabled={busy || !price || (!f.customer_id && !f.new_name) || !planOk}>Confirmar venda</button></>}>
       <div className="stack">
         <div className="form-grid">
           <Field label="Cliente" span>
@@ -692,13 +740,34 @@ function SaleModal({ vehicle, pa, accounts, customers, onClose, onDone }) {
           </>}
           <Field label="Valor final *"><MoneyInput value={f.final_price} onChange={set('final_price')} /></Field>
           <Field label="Data"><input type="date" value={f.sale_date} onChange={(e) => set('sale_date')(e.target.value)} /></Field>
-          <Field label="Forma de pagamento"><Select value={f.payment_method} onChange={set('payment_method')} options={options('payment_method')} /></Field>
-          <Field label="Valor recebido agora"><MoneyInput value={f.down_payment} onChange={set('down_payment')} placeholder="0 se receber depois" /></Field>
+          <Field label="Tipo de venda" span>
+            <div className="row">
+              <button type="button" className={`btn-sm ${!parcelado ? 'btn-primary' : ''}`} onClick={() => set('mode')('cash')}>À vista</button>
+              <button type="button" className={`btn-sm ${parcelado ? 'btn-primary' : ''}`} onClick={() => set('mode')('installments')}>Parcelado</button>
+            </div>
+          </Field>
+          <Field label={parcelado ? 'Pagamento da entrada' : 'Forma de pagamento'}><Select value={f.payment_method} onChange={set('payment_method')} options={options('payment_method').filter(([v]) => v !== 'installments')} /></Field>
+          <Field label={parcelado ? 'Entrada' : 'Valor recebido agora'}><MoneyInput value={f.down_payment} onChange={set('down_payment')} placeholder={parcelado ? '0 se não tiver entrada' : '0 se receber depois'} /></Field>
+          {parcelado && <>
+            <Field label="Número de parcelas"><input type="number" inputMode="numeric" min="2" max="120" value={f.installments} onChange={(e) => set('installments')(e.target.value)} /></Field>
+            <Field label="Frequência"><Select value={f.frequency} onChange={set('frequency')} options={[['monthly', 'Mensal'], ['biweekly', 'Quinzenal'], ['weekly', 'Semanal']]} /></Field>
+            <Field label="1ª parcela vence em"><input type="date" value={f.first_due_date} onChange={(e) => set('first_due_date')(e.target.value)} placeholder="automático" /></Field>
+            <Field label="Juros ao ano (%)"><input type="number" inputMode="decimal" min="0" step="0.1" value={f.apr} onChange={(e) => set('apr')(e.target.value)} placeholder="0 = sem juros" /></Field>
+          </>}
           {toNum(f.down_payment) > 0 && (accounts.length
             ? <Field label="Recebido na conta"><Select value={f.account_id} onChange={set('account_id')} options={accounts.map((a) => [a.id, a.name])} /></Field>
             : <Field label="Nome da conta (será criada)"><input value={f.new_account} onChange={(e) => set('new_account')(e.target.value)} /></Field>)}
           <Field label="Observações" full><input value={f.notes} onChange={(e) => set('notes')(e.target.value)} /></Field>
         </div>
+        {parcelado && (pmt ? (
+          <div className="alert-box info">
+            <b>{n} parcelas {f.frequency === 'weekly' ? 'semanais' : f.frequency === 'biweekly' ? 'quinzenais' : 'mensais'} de {money(pmt, true)}</b>
+            <div className="small" style={{ marginTop: 4 }}>
+              Valor financiado {money(financed, true)}{rate ? ` · total com juros ${money(pmt * n + down, true)} (juros ${money(pmt * n - financed, true)})` : ' · sem juros'}
+              {!f.first_due_date && ` · 1ª parcela ${f.frequency === 'monthly' ? '1 mês' : f.frequency === 'biweekly' ? '15 dias' : '1 semana'} após a venda`}
+            </div>
+          </div>
+        ) : <div className="alert-box warning">Informe valor, entrada menor que o valor e de 2 a 120 parcelas.</div>)}
         {profit !== null && (
           <div className={`alert-box ${profit < 0 ? 'error' : price >= Number(pa.min_target_price) ? 'success' : 'warning'}`}>
             Lucro estimado com essa venda: <b>{money(profit)}</b> ({((profit / price) * 100).toFixed(1)}% de margem)
