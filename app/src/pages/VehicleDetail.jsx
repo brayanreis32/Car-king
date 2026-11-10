@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom'
 import { date, label, money, options, pct, q, signedMoney, supabase, toNum, VEHICLE_STATUS_TONE, vehicleName } from '../lib.js'
 import { Badge, ErrorBox, Field, Icon, Kpi, Modal, MoneyInput, Select, Spinner, Tabs, useAction, useLoad } from '../components/ui.jsx'
 import { Documents, Expenses, Labor, Parts, Sale, Transport } from './VehicleTabs.jsx'
+import { VehiclePhotos } from '../components/photos.jsx'
 
 const MANUAL_STATUS = ['purchased', 'awaiting_pickup', 'in_transit', 'received', 'in_inspection', 'in_preparation',
   'awaiting_parts', 'in_repair', 'in_detailing', 'ready_for_sale', 'listed', 'reserved']
@@ -61,11 +62,12 @@ export default function VehicleDetail() {
       )}
 
       <Tabs active={tab} onChange={setTab} tabs={[
-        ['summary', 'Resumo'], ['budget', 'Orçamento'], ['transport', 'Reboque'], ['parts', 'Peças'],
+        ['summary', 'Resumo'], ['photos', 'Fotos'], ['budget', 'Orçamento'], ['transport', 'Reboque'], ['parts', 'Peças'],
         ['labor', 'Mão de obra'], ['expenses', 'Despesas'], ['documents', 'Documentos'], ['sale', sold ? 'Venda' : 'Vender'],
       ]} />
 
       {tab === 'summary' && <Summary v={v} pa={pa} onEditPrices={() => setEditingPrices(true)} />}
+      {tab === 'photos' && <VehiclePhotos vehicle={v} />}
       {tab === 'budget' && <Budget budget={budget} />}
       {tab === 'transport' && <Transport vehicle={v} onChange={reload} />}
       {tab === 'parts' && <Parts vehicle={v} onChange={reload} />}

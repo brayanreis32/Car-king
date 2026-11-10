@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { label, money, options, q, rpc, supabase, toNum, today, VEHICLE_STATUS_TONE, vehicleName } from '../lib.js'
 import { Badge, Empty, ErrorBox, Field, Icon, Modal, MoneyInput, Select, Spinner, Tabs, useAction, useLoad } from '../components/ui.jsx'
 import { useApp } from '../App.jsx'
+import { loadCovers } from '../components/photos.jsx'
 
 const GROUPS = {
   prep: ['purchased', 'awaiting_pickup', 'in_transit', 'received', 'in_inspection', 'in_preparation', 'awaiting_parts', 'in_repair', 'in_detailing'],
@@ -21,7 +22,9 @@ export default function Vehicles() {
       q(supabase.from('vehicle_profit_analysis').select('vehicle_id, actual_cost, projected_cost, projected_profit, real_profit, expected_sale_price, sale_price, days_since_purchase')),
     ])
     const byId = Object.fromEntries((profit || []).map((p) => [p.vehicle_id, p]))
-    return vehicles.map((v) => ({ ...v, p: byId[v.id] || {} }))
+    let covers = {}
+    try { covers = await loadCovers() } catch { /* sem fotos não impede a lista */ }
+    return vehicles.map((v) => ({ ...v, p: byId[v.id] || {}, cover: covers[v.id] }))
   })
 
   const rows = (data || []).filter((v) => GROUPS[tab].includes(v.status))
@@ -52,7 +55,7 @@ export default function Vehicles() {
                   const profit = v.status === 'sold' ? v.p.real_profit : v.p.projected_profit
                   return (
                     <tr key={v.id} className="clickable" onClick={() => nav(`/veiculos/${v.id}`)}>
-                      <td><b>{vehicleName(v)}</b><div className="muted small">{v.vin}</div></td>
+                      <td><div className="row" style={{ flexWrap: 'nowrap', gap: 12 }}><Thumb src={v.cover} /><div><b>{vehicleName(v)}</b><div className="muted small">{v.vin}</div></div></div></td>
                       <td>{v.stock_number || '—'}</td>
                       <td><Badge tone={VEHICLE_STATUS_TONE[v.status]}>{label('vehicle_status', v.status)}</Badge></td>
                       <td className="num">{v.p.days_since_purchase ?? '—'}</td>
@@ -71,6 +74,7 @@ export default function Vehicles() {
               const profit = v.status === 'sold' ? v.p.real_profit : v.p.projected_profit
               return (
                 <div key={v.id} className="list-item" onClick={() => nav(`/veiculos/${v.id}`)}>
+                  <Thumb src={v.cover} big />
                   <div className="grow" style={{ minWidth: 0 }}>
                     <div className="row between"><b>{vehicleName(v)}</b><Badge tone={VEHICLE_STATUS_TONE[v.status]}>{label('vehicle_status', v.status)}</Badge></div>
                     <div className="muted small">{v.stock_number ? `${v.stock_number} · ` : ''}{v.p.days_since_purchase ?? 0} dias</div>
@@ -88,6 +92,10 @@ export default function Vehicles() {
       {adding && <AddVehicleModal onClose={() => setAdding(false)} onDone={(id) => nav(`/veiculos/${id}`)} />}
     </div>
   )
+}
+
+function Thumb({ src, big }) {
+  return <div className={`thumb ${big ? 'big' : ''}`}>{src ? <img src={src} alt="" loading="lazy" /> : <Icon name="car" />}</div>
 }
 
 // Carro já comprado (fora do Auction Analyzer): registra veículo + compra + orçamento
