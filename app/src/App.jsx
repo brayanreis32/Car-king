@@ -83,7 +83,7 @@ function Shell() {
     <div className="shell">
       <header className="mobile-top"><img src="./logo.jpg" alt="Car King Auto Sales" /></header>
       <aside className="sidebar">
-        <div className="brand"><Brand /></div>
+        <div className="brand"><img src="./logo-dark.webp" alt="Car King Auto Sales" width="600" height="173" /></div>
         <nav className="nav">
           {menu.map((m) => (
             <NavLink key={m.to} to={m.to} end={m.end}><Icon name={m.icon} />{m.text}</NavLink>
