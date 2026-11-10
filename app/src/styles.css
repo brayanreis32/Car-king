@@ -64,13 +64,13 @@ h3 { font-size: 14px; }
 /* ---------- Layout ---------- */
 .shell { display: flex; min-height: 100%; }
 .sidebar {
-  width: var(--sidebar); flex-shrink: 0; background: #000; color: #E9E9EA;
+  width: var(--sidebar); flex-shrink: 0; background: var(--surface); border-right: 1px solid var(--border);
   position: sticky; top: 0; height: 100vh; display: flex; flex-direction: column; padding: 20px 12px;
 }
 .brand { padding: 0 0 20px; }
-.logo-banner { background: #000; line-height: 0; border-radius: 12px; padding: 16px 20px; }
+.logo-banner { line-height: 0; }
 .logo-banner img { width: 100%; height: auto; display: block; }
-.sidebar .logo-banner { border-radius: 0; padding: 2px 4px; }
+.sidebar .logo-banner { padding: 0 2px; }
 .brand-name { font-family: 'Montserrat', var(--font); font-style: italic; font-weight: 800; font-size: 18px; letter-spacing: .3px; line-height: 1.1; }
 .brand-name .car { color: #55585E; }
 .brand-name .king { color: var(--gold); }
@@ -78,16 +78,15 @@ h3 { font-size: 14px; }
 .nav { display: flex; flex-direction: column; gap: 1px; }
 .nav a {
   display: flex; align-items: center; gap: 12px; padding: 9px 10px; border-radius: 8px;
-  color: #A3A5AA; font-weight: 500; text-decoration: none; position: relative;
+  color: var(--text-2); font-weight: 500; text-decoration: none; position: relative;
 }
-.nav a:hover { background: #121214; color: #FFFFFF; }
-.nav a.active { background: #18191B; color: #FFFFFF; }
+.nav a:hover { background: var(--surface-2); color: var(--text); }
+.nav a.active { background: var(--surface-2); color: var(--text); }
 .nav a.active::before { content: ''; position: absolute; left: -12px; top: 8px; bottom: 8px; width: 3px; border-radius: 0 3px 3px 0; background: var(--gold); }
 .nav svg { width: 19px; height: 19px; flex-shrink: 0; }
-.sidebar-foot { margin-top: auto; padding: 12px 8px 0; font-size: 12px; color: #8E9095; border-top: 1px solid #1F2023; }
-.sidebar-foot .who { color: #FFFFFF; font-weight: 600; font-size: 13px; }
-.sidebar-foot button { margin-top: 10px; width: 100%; background: #111113; border-color: #2A2B2F; color: #E9E9EA; }
-.sidebar-foot button:hover { background: #1A1B1D; }
+.sidebar-foot { margin-top: auto; padding: 12px 8px 0; font-size: 12px; color: var(--text-2); border-top: 1px solid var(--border); }
+.sidebar-foot .who { color: var(--text); font-weight: 600; font-size: 13px; }
+.sidebar-foot button { margin-top: 10px; width: 100%; }
 
 .main { flex: 1; min-width: 0; padding: 28px 36px 64px; max-width: 1240px; }
 .page-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 22px; flex-wrap: wrap; }
@@ -221,11 +220,11 @@ tfoot td { font-weight: 600; border-bottom: 0; }
 /* ---------- Login ---------- */
 .login { min-height: 100%; display: flex; align-items: center; justify-content: center; padding: 24px 16px; background: var(--bg); }
 .login-card { width: 100%; max-width: 380px; }
-.login-split { min-height: 100%; display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); }
-.login-brand { background: #000; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 48px; gap: 18px; }
-.login-brand img { width: 100%; max-width: 560px; height: auto; }
-.login-brand p { color: #8E9095; font-size: 14px; margin: 0; text-align: center; }
-.login-side { display: flex; align-items: center; justify-content: center; padding: 32px 20px; background: var(--bg); }
+.login-split { min-height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 32px 16px; gap: 22px; background: var(--bg); }
+.login-brand { display: flex; flex-direction: column; align-items: center; gap: 8px; width: 100%; max-width: 440px; }
+.login-brand img { width: 100%; height: auto; }
+.login-brand p { color: var(--text-2); font-size: 14px; margin: 0; text-align: center; }
+.login-side { display: flex; justify-content: center; width: 100%; }
 
 
 /* =============================================================================
@@ -236,13 +235,12 @@ tfoot td { font-weight: 600; border-bottom: 0; }
   .shell { flex-direction: column; }
   .mobile-top {
     display: flex; align-items: center; justify-content: center; position: sticky; top: 0; z-index: 30;
-    background: #000; padding: calc(8px + env(safe-area-inset-top)) 16px 8px;
+    background: rgba(255,255,255,.97); backdrop-filter: blur(8px); border-bottom: 1px solid var(--border);
+    padding: calc(6px + env(safe-area-inset-top)) 16px 6px;
   }
   .mobile-top img { height: 40px; width: auto; }
-  .login-split { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto 1fr; }
-  .login-brand { padding: calc(36px + env(safe-area-inset-top)) 28px 30px; }
-  .login-brand img { max-width: 340px; }
-  .login-side { align-items: flex-start; padding: 24px 16px 40px; }
+  .login-split { justify-content: flex-start; padding-top: calc(40px + env(safe-area-inset-top)); }
+  .login-brand { max-width: 340px; }
   .main { padding: 18px 16px calc(88px + env(safe-area-inset-bottom)); }
   .grid-2, .grid-3 { grid-template-columns: minmax(0, 1fr); }
   .grid-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }

@@ -28,7 +28,7 @@ export function Icon({ name, size }) {
 export function Brand() {
   return (
     <div className="logo-banner">
-      <img src="./logo.webp" alt="Car King Auto Sales" width="900" height="262" />
+      <img src="./logo.webp" alt="Car King Auto Sales" width="900" height="269" />
     </div>
   )
 }
