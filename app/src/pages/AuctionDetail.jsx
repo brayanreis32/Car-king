@@ -4,6 +4,7 @@ import { date, label, money, options, OPP_STATUS_TONE, pct, q, rpc, supabase, to
 import { Badge, Empty, ErrorBox, Field, Icon, Modal, MoneyInput, Select, Spinner, useAction, useLoad, useToast } from '../components/ui.jsx'
 import { OpportunityForm } from './Auctions.jsx'
 import { useApp } from '../App.jsx'
+import { DeleteRecordButton } from '../components/deleteRecord.jsx'
 
 const MANUAL_STATUS = ['analyzing', 'awaiting_inspection', 'awaiting_quote', 'approved', 'lost', 'discarded']
 
@@ -53,6 +54,7 @@ export default function AuctionDetail() {
           <div className="row">
             <Badge tone={OPP_STATUS_TONE[opp.status]}>{label('opportunity_status', opp.status)}</Badge>
             {!won && <button className="btn-sm" onClick={() => setEditing(true)}><Icon name="edit" /> Editar</button>}
+            <DeleteRecordButton kind="opportunity" id={opp.id} name={vehicleName(opp)} withVehicle={Boolean(vehicle)} redirectTo="/leiloes" />
           </div>
         </div>
       </div>

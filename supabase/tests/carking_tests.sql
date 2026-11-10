@@ -444,5 +444,66 @@ select pg_temp.eq('outra empresa não vê alertas alheios', (select count(*) fro
 select pg_temp.must_fail('inserir dados em outra empresa',
   format('insert into customers (company_id, full_name) values (%L, %L)', :'ck_company', 'Intruso'));
 
+-- outra empresa não exclui veículo alheio
+reset role;
+select set_config('test.sold_vehicle', (select id::text from vehicles where status = 'sold' order by created_at limit 1), false) \g /dev/null
+set role authenticated;
+select pg_temp.must_fail('outra empresa não exclui veículo alheio',
+  $q$select public.delete_vehicle(current_setting('test.sold_vehicle')::uuid)$q$);
+
+-- ---------------------------------------------------------------------------
+-- Exclusão de testes / cadastros errados
+-- ---------------------------------------------------------------------------
+reset role;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000002', false) \g /dev/null
+set role authenticated;
+select pg_temp.must_fail('vendedor não exclui veículo',
+  $q$select public.delete_vehicle(current_setting('test.sold_vehicle')::uuid)$q$);
+
+reset role;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', false) \g /dev/null
+set role authenticated;
+select pg_temp.must_fail('apagar veículo direto continua bloqueado',
+  $q$delete from vehicles where id = current_setting('test.sold_vehicle')::uuid$q$);
+select pg_temp.eq('veículo vendido tem venda, parcelas e pagamentos antes',
+  (select (select count(*) from sales where vehicle_id = v) > 0
+      and (select count(*) from accounts_receivable where vehicle_id = v) > 0
+      and (select count(*) from accounts_payable where vehicle_id = v) > 0
+      and (select count(*) from financial_transactions where vehicle_id = v
+             or payable_id in (select id from accounts_payable where vehicle_id = v)
+             or receivable_id in (select id from accounts_receivable where vehicle_id = v)) > 0
+   from (select current_setting('test.sold_vehicle')::uuid v) x), true);
+select set_config('test.sold_opp', (select coalesce(opportunity_id::text, '') from vehicles where id = current_setting('test.sold_vehicle')::uuid), false) \g /dev/null
+select set_config('test.vehicles_before', (select count(*)::text from vehicles), false) \g /dev/null
+select set_config('test.customers_before', (select count(*)::text from customers), false) \g /dev/null
+select pg_temp.eq('exclusão retorna lista de arquivos',
+  jsonb_typeof(public.delete_vehicle(current_setting('test.sold_vehicle')::uuid) -> 'files'), 'array');
+select pg_temp.eq('veículo excluído', (select count(*) from vehicles), current_setting('test.vehicles_before')::bigint - 1);
+select pg_temp.eq('sem venda/parcelas/contas órfãs',
+  (select count(*) from sales where vehicle_id = current_setting('test.sold_vehicle')::uuid)
+  + (select count(*) from accounts_receivable where vehicle_id = current_setting('test.sold_vehicle')::uuid)
+  + (select count(*) from accounts_payable where vehicle_id = current_setting('test.sold_vehicle')::uuid)
+  + (select count(*) from financial_transactions where vehicle_id = current_setting('test.sold_vehicle')::uuid)
+  + (select count(*) from vehicle_purchases where vehicle_id = current_setting('test.sold_vehicle')::uuid), 0::bigint);
+select pg_temp.eq('análise de origem excluída junto',
+  (select count(*) from auction_opportunities where id::text = current_setting('test.sold_opp')), 0::bigint);
+select pg_temp.eq('clientes mantidos', (select count(*) from customers), current_setting('test.customers_before')::bigint);
+select pg_temp.must_fail('travas voltam a valer depois da exclusão',
+  $q$delete from vehicles where id = (select id from vehicles limit 1)$q$);
+
+-- análise sem veículo
+insert into auction_opportunities (make, model, year, lot_number) values ('Honda', 'Civic', 2019, 'TESTE-1');
+select set_config('test.opp_only', (select id::text from auction_opportunities where lot_number = 'TESTE-1'), false) \g /dev/null
+select public.delete_opportunity(current_setting('test.opp_only')::uuid) \g /dev/null
+select pg_temp.eq('análise de leilão excluída',
+  (select count(*) from auction_opportunities where id = current_setting('test.opp_only')::uuid), 0::bigint);
+
+-- todos os veículos restantes podem ser excluídos
+do $$ declare r record; begin
+  for r in select id from vehicles loop perform public.delete_vehicle(r.id); end loop;
+end $$;
+select pg_temp.eq('todos os veículos de teste excluídos', (select count(*) from vehicles), 0::bigint);
+select pg_temp.eq('nenhuma conta a pagar de veículo sobrando', (select count(*) from accounts_payable where vehicle_id is not null), 0::bigint);
+
 reset role;
 \echo 'CARKING: todos os testes de regras de negócio passaram.'

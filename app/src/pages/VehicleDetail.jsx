@@ -4,6 +4,7 @@ import { date, label, money, options, pct, q, signedMoney, supabase, toNum, VEHI
 import { Badge, ErrorBox, Field, Icon, Kpi, Modal, MoneyInput, Select, Spinner, Tabs, useAction, useLoad } from '../components/ui.jsx'
 import { Documents, Expenses, Labor, Parts, Sale, Transport } from './VehicleTabs.jsx'
 import { VehiclePhotos } from '../components/photos.jsx'
+import { DeleteRecordButton } from '../components/deleteRecord.jsx'
 
 const MANUAL_STATUS = ['purchased', 'awaiting_pickup', 'in_transit', 'received', 'in_inspection', 'in_preparation',
   'awaiting_parts', 'in_repair', 'in_detailing', 'ready_for_sale', 'listed', 'reserved']
@@ -50,10 +51,13 @@ export default function VehicleDetail() {
               {purchase && ` · ${purchase.auction_sources?.name || purchase.auction_name || 'compra direta'}${purchase.lot_number ? ` lote ${purchase.lot_number}` : ''} em ${date(purchase.purchase_date)}`}
             </div>
           </div>
-          {sold ? <Badge tone="success">Vendido</Badge> : (
-            <Select value={v.status} onChange={setStatus} disabled={busy} style={{ width: 'auto', minWidth: 190 }}
-              options={MANUAL_STATUS.map((s) => [s, label('vehicle_status', s)])} />
-          )}
+          <div className="row">
+            {sold ? <Badge tone="success">Vendido</Badge> : (
+              <Select value={v.status} onChange={setStatus} disabled={busy} style={{ width: 'auto', minWidth: 190 }}
+                options={MANUAL_STATUS.map((s) => [s, label('vehicle_status', s)])} />
+            )}
+            <DeleteRecordButton kind="vehicle" id={v.id} name={vehicleName(v)} sold={sold} redirectTo="/veiculos" />
+          </div>
         </div>
       </div>
 
