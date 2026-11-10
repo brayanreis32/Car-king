@@ -505,5 +505,37 @@ end $$;
 select pg_temp.eq('todos os veículos de teste excluídos', (select count(*) from vehicles), 0::bigint);
 select pg_temp.eq('nenhuma conta a pagar de veículo sobrando', (select count(*) from accounts_payable where vehicle_id is not null), 0::bigint);
 
+-- ---------------------------------------------------------------------------
+-- Clientes: cadastro completo, documentos e exclusão
+-- ---------------------------------------------------------------------------
+insert into customers (full_name, phone, email, address, address2, city, state, zip, document_id, license_state, license_expires, birth_date)
+values ('Maria Teste', '4075550111', 'maria@test.com', '100 Main St', 'Apt 2', 'Orlando', 'FL', '32801', 'S123-456', 'FL', '2030-01-01', '1990-05-05');
+reset role;
+select set_config('test.cust', (select id::text from customers where full_name = 'Maria Teste'), false) \g /dev/null
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000002', false) \g /dev/null
+set role authenticated;
+insert into attachments (entity_type, entity_id, kind, bucket, path, file_name)
+values ('customer', current_setting('test.cust')::uuid, 'document', 'documents', 'x/customer/' || current_setting('test.cust') || '/cnh.jpg', 'cnh.jpg');
+select pg_temp.eq('vendedor anexa e vê documento do cliente',
+  (select count(*) from attachments where entity_type = 'customer'), 1::bigint);
+select pg_temp.must_fail('vendedor não exclui cliente',
+  $q$select public.delete_customer(current_setting('test.cust')::uuid)$q$);
+reset role;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', false) \g /dev/null
+set role authenticated;
+insert into accounts_receivable (customer_id, description, amount, due_date) values (current_setting('test.cust')::uuid, 'Teste', 100, current_date);
+select pg_temp.must_fail('cliente com fatura não é excluído',
+  $q$select public.delete_customer(current_setting('test.cust')::uuid)$q$);
+reset role;
+begin; select set_config('app.allow_purge', 'on', true) \g /dev/null
+delete from accounts_receivable where description = 'Teste' and customer_id = current_setting('test.cust')::uuid;
+commit;
+set role authenticated;
+select pg_temp.eq('cliente excluído devolve o arquivo',
+  jsonb_array_length(public.delete_customer(current_setting('test.cust')::uuid) -> 'files'), 1);
+select pg_temp.eq('cliente e documentos apagados',
+  (select count(*) from customers where id = current_setting('test.cust')::uuid)
+  + (select count(*) from attachments where entity_type = 'customer'), 0::bigint);
+
 reset role;
 \echo 'CARKING: todos os testes de regras de negócio passaram.'

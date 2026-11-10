@@ -12,7 +12,7 @@ const MAX_MB = 25
 export const ENTITY_LABEL = {
   part: 'Peça', repair_item: 'Mão de obra', labor_entry: 'Mão de obra', expense: 'Despesa',
   transport_order: 'Reboque', financial_transaction: 'Pagamento', vehicle_purchase: 'Compra',
-  sale: 'Venda', document: 'Documento', vehicle: 'Veículo',
+  sale: 'Venda', document: 'Documento', vehicle: 'Veículo', customer: 'Cliente',
 }
 
 function checkFile(file) {
@@ -29,7 +29,7 @@ export async function uploadAttachment(file, { companyId, entityType, entityId, 
   if (error) throw new Error(`Falha ao enviar "${file.name}": ${error.message}`)
   await q(supabase.from('attachments').insert({
     entity_type: entityType, entity_id: entityId, vehicle_id: vehicleId || null,
-    kind: file.type === 'application/pdf' ? 'invoice' : 'receipt',
+    kind: entityType === 'customer' ? 'document' : file.type === 'application/pdf' ? 'invoice' : 'receipt',
     bucket: 'documents', path, file_name: file.name, mime_type: file.type || null, size_bytes: file.size,
   }))
 }

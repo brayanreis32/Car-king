@@ -17,6 +17,8 @@ const paths = {
   close: 'M18 6L6 18M6 6l12 12',
   edit: 'M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z',
   trash: 'M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6',
+  chevron: 'M9 18l6-6-6-6',
+  idcard: 'M3 5h18v14H3zM7 10a2 2 0 1 0 4 0 2 2 0 0 0-4 0M5.5 16c.6-1.5 1.9-2.3 3.5-2.3s2.9.8 3.5 2.3M15 9.5h4M15 13.5h4',
   link: 'M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7',
 }
 export function Icon({ name, size }) {

@@ -603,7 +603,7 @@ export function Sale({ vehicle, pa, onChange }) {
         </div>
         <div className="card">
           <div className="lines">
-            <div><span className="muted">Cliente</span><span>{sale.customers?.full_name} {sale.customers?.phone && `· ${sale.customers.phone}`}</span></div>
+            <div><span className="muted">Cliente</span><span><Link to={`/clientes/${sale.customer_id}`}>{sale.customers?.full_name}</Link> {sale.customers?.phone && `· ${sale.customers.phone}`}</span></div>
             <div><span className="muted">Pagamento</span><span>{parcelado
               ? `Entrada ${money(sale.down_payment)} + ${sale.installments} parcelas ${FREQ[sale.installment_frequency]} de ${money(sale.installment_amount, true)}${Number(sale.interest_rate_apr) > 0 ? ` (juros ${Number(sale.interest_rate_apr)}% a.a.)` : ' (sem juros)'}`
               : `${label('payment_method', sale.payment_method)} · recebido na hora ${money(sale.down_payment)}`}</span></div>

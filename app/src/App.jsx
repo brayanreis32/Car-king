@@ -11,6 +11,8 @@ import VehicleDetail from './pages/VehicleDetail.jsx'
 import Settings from './pages/Settings.jsx'
 import Finance from './pages/Finance.jsx'
 import Employees from './pages/Employees.jsx'
+import Customers from './pages/Customers.jsx'
+import CustomerDetail from './pages/CustomerDetail.jsx'
 
 const AppCtx = createContext(null)
 export const useApp = () => useContext(AppCtx)
@@ -71,6 +73,7 @@ const MENU = [
   { to: '/', icon: 'dashboard', text: 'Dashboard', short: 'Início', module: 'dashboard', end: true },
   { to: '/leiloes', icon: 'gavel', text: 'Auction Analyzer', short: 'Leilões', module: 'auction' },
   { to: '/veiculos', icon: 'car', text: 'Veículos', short: 'Veículos', module: 'vehicles' },
+  { to: '/clientes', icon: 'idcard', text: 'Clientes', short: 'Clientes', module: 'customers' },
   { to: '/financeiro', icon: 'money', text: 'Financeiro', short: 'Financeiro', module: 'finance' },
   { to: '/funcionarios', icon: 'users', text: 'Funcionários', short: 'Equipe', module: 'employees', desktopOnly: true },
   { to: '/configuracoes', icon: 'settings', text: 'Configurações', short: 'Ajustes', module: 'settings', bottom: true },
@@ -108,6 +111,8 @@ function Shell() {
           <Route path="/leiloes/:id" element={<AuctionDetail />} />
           <Route path="/veiculos" element={<Vehicles />} />
           <Route path="/veiculos/:id" element={<VehicleDetail />} />
+          <Route path="/clientes" element={<Customers />} />
+          <Route path="/clientes/:id" element={<CustomerDetail />} />
           <Route path="/financeiro" element={<Finance />} />
           <Route path="/funcionarios" element={<Employees />} />
           <Route path="/configuracoes" element={<Settings />} />
