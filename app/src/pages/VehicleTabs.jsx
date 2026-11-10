@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { date, label, money, options, PART_STATUS_TONE, q, rpc, supabase, toNum, today } from '../lib.js'
+import { date, label, money, options, PART_STATUS_TONE, q, rpc, supabase, toNum, today, vehicleName } from '../lib.js'
 import { Badge, Empty, ErrorBox, Field, Icon, Kpi, Modal, MoneyInput, Select, Spinner, useAction, useLoad } from '../components/ui.jsx'
 import { useApp } from '../App.jsx'
+import { ReminderButton } from '../components/reminder.jsx'
 import { Attachments, AttachmentRow, AttachmentsButton, FilePick, uploadAll, useAttachmentCounts } from '../components/attachments.jsx'
 
 // Fornecedores com opção de cadastrar na hora
@@ -618,7 +619,7 @@ export function Sale({ vehicle, pa, onChange }) {
             </div>
             <div className="table-wrap">
               <table>
-                <thead><tr><th>Parcela</th><th>Vencimento</th><th className="num">Valor</th><th className="num">Recebido</th><th>Situação</th></tr></thead>
+                <thead><tr><th>Parcela</th><th>Vencimento</th><th className="num">Valor</th><th className="num">Recebido</th><th>Situação</th><th></th></tr></thead>
                 <tbody>
                   {schedule.map((r) => {
                     const late = r.status !== 'received' && r.due_date < today()
@@ -629,6 +630,7 @@ export function Sale({ vehicle, pa, onChange }) {
                         <td className="num">{money(r.amount, true)}</td>
                         <td className="num">{money(r.received_amount, true)}</td>
                         <td><Badge tone={r.status === 'received' ? 'success' : late ? 'error' : r.status === 'partial' ? 'warning' : ''}>{r.status === 'received' ? 'Paga' : late ? 'Vencida' : r.status === 'partial' ? 'Parcial' : 'Em aberto'}</Badge></td>
+                        <td>{(late || r.due_date <= today()) && <ReminderButton receivable={r} customer={sale.customers?.full_name} phone={sale.customers?.phone} vehicle={vehicleName(vehicle)} />}</td>
                       </tr>
                     )
                   })}

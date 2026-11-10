@@ -20,16 +20,18 @@ export default function Dashboard() {
   const fin = can('finance', 'view')
   const { data, error, loading } = useLoad(async () => {
     const monthStart = `${today().slice(0, 8)}01`
-    const [kpis, alerts, vehicles, overdue, paid] = await Promise.all([
+    const [kpis, alerts, vehicles, overdue, paid, lateRecv] = await Promise.all([
       q(supabase.from('dashboard_kpis').select('*').maybeSingle()),
       q(supabase.from('alerts').select('*').order('severity').limit(40)),
       q(supabase.from('vehicles').select('id, year, make, model, trim, stock_number')),
       fin ? q(supabase.from('accounts_payable').select('balance').in('status', ['open', 'partial']).lt('due_date', today())) : [],
       fin ? q(supabase.from('financial_transactions').select('amount').eq('direction', 'out').eq('status', 'confirmed').is('transfer_id', null).gte('transaction_date', monthStart)) : [],
+      fin ? q(supabase.from('accounts_receivable').select('balance, customer_id').in('status', ['open', 'partial']).lt('due_date', today())) : [],
     ])
     const names = Object.fromEntries(vehicles.map((v) => [v.id, `${vehicleName(v)}${v.stock_number ? ` · ${v.stock_number}` : ''}`]))
     const sum = (rows, k) => rows.reduce((s, r) => s + Number(r[k]), 0)
-    return { kpis: kpis || {}, alerts, names, overdue: { count: overdue.length, total: sum(overdue, 'balance') }, paidMonth: { count: paid.length, total: sum(paid, 'amount') } }
+    return { kpis: kpis || {}, alerts, names, overdue: { count: overdue.length, total: sum(overdue, 'balance') }, paidMonth: { count: paid.length, total: sum(paid, 'amount') },
+      lateRecv: { count: lateRecv.length, total: sum(lateRecv, 'balance'), customers: new Set(lateRecv.map((r) => r.customer_id)).size } }
   })
 
   if (loading) return <Spinner />
@@ -67,6 +69,10 @@ export default function Dashboard() {
           <Kpi to="/financeiro?tab=paid" label="Pagas este mês" value={money(data.paidMonth.total)} hint={`${data.paidMonth.count} pagamento(s)`} />
           <Kpi to="/financeiro?tab=receive" label="Contas a receber" value={money(k.accounts_receivable_open)} hint="clientes" />
         </div>
+      )}
+      {fin && data.lateRecv.count > 0 && (
+        <Kpi to="/financeiro?tab=receive&vencidas=1" label="Parcelas de clientes em atraso" value={money(data.lateRecv.total)} tone="neg"
+          hint={`${data.lateRecv.count} parcela(s) de ${data.lateRecv.customers} cliente(s) · clique para cobrar pelo WhatsApp`} />
       )}
 
       <div className="card pad-0">

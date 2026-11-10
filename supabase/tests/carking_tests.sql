@@ -382,6 +382,11 @@ select pg_temp.eq('parcela 1 recebida', (select ar.status from accounts_receivab
 select pg_temp.must_fail('não cancela venda com parcelas pagas',
   $q$update sales set status = 'cancelled', cancel_reason = 'teste' where vehicle_id = (select id from vehicles where vin = '2T1BURHE5JC000101')$q$);
 
+-- lembrete de cobrança
+select log_payment_reminder((select ar.id from accounts_receivable ar join sales s on s.id = ar.sale_id join vehicles v on v.id = s.vehicle_id where v.vin = '2T1BURHE5JC000101' and ar.installment_number = 2)) \g /dev/null
+select pg_temp.eq('lembrete registrado', (select reminder_count from accounts_receivable ar join sales s on s.id = ar.sale_id join vehicles v on v.id = s.vehicle_id where v.vin = '2T1BURHE5JC000101' and ar.installment_number = 2), 1);
+select pg_temp.eq('mensagem padrão existe', (select reminder_template like 'Hi {cliente}%' from companies where name = 'Car King Auto Sales'), true);
+
 -- ---------------------------------------------------------------------------
 -- 8. Permissões e isolamento entre empresas
 -- ---------------------------------------------------------------------------

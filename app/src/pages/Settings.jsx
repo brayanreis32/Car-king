@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { money, q, supabase, toNum } from '../lib.js'
+import { DEFAULT_REMINDER, money, q, reminderMessage, supabase, toNum } from '../lib.js'
 import { ErrorBox, Field, Icon, Modal, MoneyInput, Spinner, useAction, useLoad } from '../components/ui.jsx'
 import { useApp } from '../App.jsx'
 
@@ -16,6 +16,7 @@ export default function Settings() {
         </Link>
       )}
       <Goals company={company} canEdit={can('settings', 'edit')} onSaved={reloadCompany} />
+      <ReminderTemplate company={company} canEdit={can('settings', 'edit')} onSaved={reloadCompany} />
       <Sources canEdit={can('auction', 'edit')} />
     </div>
   )
@@ -132,5 +133,34 @@ function SourceModal({ source, onClose, onDone }) {
       </div>
       <p className="small muted">A tabela de taxas por faixa de lance é cadastrada com a ajuda do Claude (mande o print da tabela do leilão).</p>
     </Modal>
+  )
+}
+
+function ReminderTemplate({ company, canEdit, onSaved }) {
+  const [text, setText] = useState(company.reminder_template || DEFAULT_REMINDER)
+  const [run, busy] = useAction()
+  const preview = reminderMessage(text, {
+    customer: 'John Smith', vehicle: '2021 Toyota Camry', company: company.name,
+    receivable: { description: 'Parcela 3/12', installment_number: 3, balance: 888.49, due_date: '2026-12-10' },
+  })
+  const save = async () => {
+    await run(() => q(supabase.from('companies').update({ reminder_template: text }).eq('id', company.id)), 'Mensagem salva')
+    onSaved()
+  }
+  return (
+    <div className="card stack">
+      <h2>Mensagem de cobrança (WhatsApp)</h2>
+      <p className="small muted" style={{ margin: 0 }}>
+        Usada no botão “WhatsApp” das parcelas em aberto. Variáveis: {'{cliente} {carro} {parcela} {valor} {vencimento} {dias_atraso} {empresa}'}
+      </p>
+      <textarea value={text} onChange={(e) => setText(e.target.value)} disabled={!canEdit} rows={4} />
+      <div className="alert-box info small"><b>Prévia:</b> {preview}</div>
+      {canEdit && (
+        <div className="row">
+          <button className="btn-primary" onClick={save} disabled={busy}>Salvar mensagem</button>
+          <button className="btn-ghost btn-sm" onClick={() => setText(DEFAULT_REMINDER)}>Restaurar padrão (inglês)</button>
+        </div>
+      )}
+    </div>
   )
 }

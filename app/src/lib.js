@@ -131,3 +131,27 @@ export const PART_STATUS_TONE = {
   identified: '', awaiting_quote: 'warning', to_buy: 'warning', purchased: 'info', awaiting_delivery: 'info',
   received: 'gold', installed: 'success', returned: 'error',
 }
+
+// ---------- Lembretes de cobrança (WhatsApp) ----------
+export const DEFAULT_REMINDER = 'Hi {cliente}, this is {empresa}. Friendly reminder: payment {parcela} for your {carro}, amount {valor}, was due on {vencimento}. Please let us know when you can make the payment. Thank you!'
+
+// Número no formato internacional do WhatsApp (EUA: 10 dígitos -> +1)
+export function whatsappNumber(phone) {
+  const d = String(phone || '').replace(/\D/g, '')
+  if (!d) return null
+  if (d.length === 10) return `1${d}`
+  return d
+}
+
+export function reminderMessage(template, { customer, vehicle, receivable, company }) {
+  const usDate = (v) => { if (!v) return ''; const [y, m, dd] = String(v).slice(0, 10).split('-'); return `${m}/${dd}/${y}` }
+  const inst = /Parcela (\d+\/\d+)/.exec(receivable.description || '')?.[1]
+  const parcela = receivable.installment_number === 0 ? '(down payment)' : inst ? `#${inst}` : ''
+  const late = receivable.due_date ? Math.max(0, Math.round((new Date(`${today()}T12:00:00`) - new Date(`${receivable.due_date}T12:00:00`)) / 86400000)) : 0
+  const vals = {
+    cliente: (customer || '').split(' ')[0] || 'there', carro: vehicle || 'vehicle', parcela,
+    valor: money(receivable.balance ?? receivable.amount, true), vencimento: usDate(receivable.due_date),
+    dias_atraso: String(late), empresa: company || '',
+  }
+  return (template || DEFAULT_REMINDER).replace(/\{(\w+)\}/g, (m, k) => (k in vals ? vals[k] : m)).replace(/\s{2,}/g, ' ').trim()
+}

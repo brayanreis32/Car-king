@@ -5,6 +5,7 @@ import { Badge, Empty, ErrorBox, Field, Kpi, Modal, MoneyInput, Select, Spinner,
 import { FilePick, uploadAll } from '../components/attachments.jsx'
 import { useApp } from '../App.jsx'
 import BankStatement from './BankStatement.jsx'
+import { ReminderButton } from '../components/reminder.jsx'
 import FinanceHistory from './FinanceHistory.jsx'
 
 export default function Finance() {
@@ -14,7 +15,7 @@ export default function Finance() {
   const { data, error, loading, reload } = useLoad(async () => {
     const [payables, receivables, accounts] = await Promise.all([
       q(supabase.from('accounts_payable').select('*, suppliers(name)').in('status', ['open', 'partial']).order('due_date', { nullsFirst: false })),
-      q(supabase.from('accounts_receivable').select('*, customers(full_name)').in('status', ['open', 'partial']).order('due_date', { nullsFirst: false })),
+      q(supabase.from('accounts_receivable').select('*, customers(full_name, phone), vehicles(year, make, model, trim)').in('status', ['open', 'partial']).order('due_date', { nullsFirst: false })),
       q(supabase.from('financial_account_balances').select('*').eq('is_active', true).order('name')),
     ])
     return { payables, receivables, accounts }
@@ -62,6 +63,10 @@ export default function Finance() {
                     <b>{money(r.balance, true)}</b>
                     {Number(r.balance) !== Number(r.amount) && <div className="muted small">de {money(r.amount, true)}</div>}
                   </div>
+                  {tab === 'receive' && r.customers && (
+                    <ReminderButton receivable={r} customer={r.customers.full_name} phone={r.customers.phone}
+                      vehicle={r.vehicles ? [r.vehicles.year, r.vehicles.make, r.vehicles.model].filter(Boolean).join(' ') : null} />
+                  )}
                   <button className="btn-sm btn-primary" onClick={() => setPaying({ kind: tab, row: r })}>{tab === 'pay' ? 'Pagar' : 'Receber'}</button>
                 </div>
               )
