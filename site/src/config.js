@@ -6,7 +6,7 @@ export const BUSINESS = {
   name: 'Car King Auto Sales',
   // Endereço completo do site depois de comprar um domínio (ex.: 'https://carkingautosales.com').
   // Enquanto não tiver domínio, deixe o endereço do GitHub Pages.
-  siteUrl: 'https://brayanreis32.github.io/car-king',
+  siteUrl: 'https://brayanreis32.github.io/Car-king',
 
   phone: '',          // ex.: '(407) 555-0100'
   textPhone: '',      // celular para SMS/WhatsApp; vazio = usa o phone
