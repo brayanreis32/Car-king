@@ -26,7 +26,7 @@ export default function Login() {
   return (
     <div className="login-split">
       <div className="login-brand">
-        <img src="./logo.webp" alt="Car King Auto Sales" width="900" height="269" />
+        <img src="./logo.jpg" alt="Car King Auto Sales" width="2000" height="667" />
         <p>Compra em leilão, preparação e revenda</p>
       </div>
       <div className="login-side">

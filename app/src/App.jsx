@@ -79,7 +79,7 @@ function Shell() {
   const menu = MENU.filter((m) => can(m.module))
   return (
     <div className="shell">
-      <header className="mobile-top"><img src="./logo.webp" alt="Car King Auto Sales" /></header>
+      <header className="mobile-top"><img src="./logo.jpg" alt="Car King Auto Sales" /></header>
       <aside className="sidebar">
         <div className="brand"><Brand /></div>
         <nav className="nav">

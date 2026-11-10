@@ -64,12 +64,13 @@ h3 { font-size: 14px; }
 /* ---------- Layout ---------- */
 .shell { display: flex; min-height: 100%; }
 .sidebar {
-  width: var(--sidebar); flex-shrink: 0; background: var(--surface); border-right: 1px solid var(--border);
+  width: var(--sidebar); flex-shrink: 0; background: #FEFEFE; border-right: 1px solid var(--border);
   position: sticky; top: 0; height: 100vh; display: flex; flex-direction: column; padding: 20px 12px;
 }
 .brand { padding: 0 0 20px; }
 .logo-banner { line-height: 0; }
 .logo-banner img { width: 100%; height: auto; display: block; }
+/* a logo tem fundo branco #FEFEFE: as áreas onde ela aparece usam o mesmo tom */
 .sidebar .logo-banner { padding: 0 2px; }
 .brand-name { font-family: 'Montserrat', var(--font); font-style: italic; font-weight: 800; font-size: 18px; letter-spacing: .3px; line-height: 1.1; }
 .brand-name .car { color: #55585E; }
@@ -220,11 +221,12 @@ tfoot td { font-weight: 600; border-bottom: 0; }
 /* ---------- Login ---------- */
 .login { min-height: 100%; display: flex; align-items: center; justify-content: center; padding: 24px 16px; background: var(--bg); }
 .login-card { width: 100%; max-width: 380px; }
-.login-split { min-height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 32px 16px; gap: 22px; background: var(--bg); }
+.login-split { min-height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 32px 16px; gap: 22px; background: #FEFEFE; }
 .login-brand { display: flex; flex-direction: column; align-items: center; gap: 8px; width: 100%; max-width: 440px; }
 .login-brand img { width: 100%; height: auto; }
 .login-brand p { color: var(--text-2); font-size: 14px; margin: 0; text-align: center; }
 .login-side { display: flex; justify-content: center; width: 100%; }
+.login-side .card { box-shadow: 0 1px 2px rgba(0,0,0,.04); }
 
 
 /* =============================================================================
@@ -235,7 +237,7 @@ tfoot td { font-weight: 600; border-bottom: 0; }
   .shell { flex-direction: column; }
   .mobile-top {
     display: flex; align-items: center; justify-content: center; position: sticky; top: 0; z-index: 30;
-    background: rgba(255,255,255,.97); backdrop-filter: blur(8px); border-bottom: 1px solid var(--border);
+    background: #FEFEFE; border-bottom: 1px solid var(--border);
     padding: calc(6px + env(safe-area-inset-top)) 16px 6px;
   }
   .mobile-top img { height: 40px; width: auto; }
