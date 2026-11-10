@@ -24,23 +24,28 @@ export default function Login() {
   }
 
   return (
-    <div className="login">
-      <form className="login-card" onSubmit={submit}>
-        <div className="login-logo"><Brand big /></div>
-        <div className="card stack">
-          <h2>Entrar</h2>
-          <Field label="E-mail">
-            <input type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
-          </Field>
-          <Field label="Senha">
-            <input type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} />
-          </Field>
-          <ErrorBox error={error} />
-          {resetSent && <div className="alert-box success">Enviamos um link para redefinir a senha.</div>}
-          <button className="btn-primary" disabled={busy}>{busy ? 'Entrando…' : 'Entrar'}</button>
-          <button type="button" className="btn-ghost btn-sm" onClick={reset}>Esqueci minha senha</button>
-        </div>
-      </form>
+    <div className="login-split">
+      <div className="login-brand">
+        <img src="./logo.webp" alt="Car King Auto Sales" width="900" height="262" />
+        <p>Compra em leilão, preparação e revenda</p>
+      </div>
+      <div className="login-side">
+        <form className="login-card" onSubmit={submit}>
+          <div className="card stack">
+            <h2>Entrar</h2>
+            <Field label="E-mail">
+              <input type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
+            </Field>
+            <Field label="Senha">
+              <input type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} />
+            </Field>
+            <ErrorBox error={error} />
+            {resetSent && <div className="alert-box success">Enviamos um link para redefinir a senha.</div>}
+            <button className="btn-primary" disabled={busy}>{busy ? 'Entrando…' : 'Entrar'}</button>
+            <button type="button" className="btn-ghost btn-sm" onClick={reset}>Esqueci minha senha</button>
+          </div>
+        </form>
+      </div>
     </div>
   )
 }

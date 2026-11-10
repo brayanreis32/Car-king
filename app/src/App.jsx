@@ -79,6 +79,7 @@ function Shell() {
   const menu = MENU.filter((m) => can(m.module))
   return (
     <div className="shell">
+      <header className="mobile-top"><img src="./logo.webp" alt="Car King Auto Sales" /></header>
       <aside className="sidebar">
         <div className="brand"><Brand /></div>
         <nav className="nav">
@@ -87,7 +88,7 @@ function Shell() {
           ))}
         </nav>
         <div className="sidebar-foot">
-          <div style={{ color: 'var(--text)', fontWeight: 600 }}>{profile.full_name}</div>
+          <div className="who">{profile.full_name}</div>
           <div>{profile.roles?.name} · {company.name}</div>
           <button className="btn-sm" onClick={() => supabase.auth.signOut()}><Icon name="logout" /> Sair</button>
         </div>
