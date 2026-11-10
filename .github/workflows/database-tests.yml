@@ -1,0 +1,13 @@
+name: Database tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  migrations-and-rules:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Aplicar migrações e testar regras de negócio
+        run: ./supabase/tests/run_local.sh

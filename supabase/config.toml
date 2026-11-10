@@ -1,0 +1,12 @@
+# Configuração do Supabase CLI (supabase start / supabase db push)
+project_id = "carking"
+
+[api]
+schemas = ["public"]
+extra_search_path = ["public", "extensions"]
+
+[db]
+major_version = 15
+
+[auth]
+site_url = "http://localhost:3000"
