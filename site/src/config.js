@@ -10,7 +10,7 @@ export const BUSINESS = {
 
   phone: '',          // ex.: '(407) 555-0100'
   textPhone: '',      // celular para SMS/WhatsApp; vazio = usa o phone
-  email: '',          // ex.: 'sales@carkingautosales.com'
+  email: 'owner@autosalescarking.com',
 
   street: '',         // ex.: '1234 W Colonial Dr'
   city: '',           // ex.: 'Orlando'
