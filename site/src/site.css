@@ -54,23 +54,21 @@ p { margin: 0 0 14px; }
 .link { color: var(--ink); font-weight: 600; text-decoration: none; border-bottom: 1px solid var(--gold); }
 .link-btn { background: none; border: 0; padding: 0; font: inherit; color: var(--ink); text-decoration: underline; cursor: pointer; }
 
-/* ---------- Topo ---------- */
-.topbar { background: var(--ink); color: #D8D8D4; font-size: 13px; }
-.topbar-in { display: flex; justify-content: space-between; align-items: center; min-height: 34px; gap: 12px; }
-.topbar a { color: #fff; text-decoration: none; font-weight: 600; }
-.topbar-links { display: flex; gap: 18px; align-items: center; }
-.header { background: #fff; border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 20; }
-.header-in { display: flex; align-items: center; gap: 28px; min-height: 76px; }
-.brand img { height: 58px; width: auto; }
-.nav { display: flex; gap: 26px; flex: 1; }
-.nav a { text-decoration: none; font-weight: 500; color: var(--ink-2); padding: 6px 0; border-bottom: 2px solid transparent; }
-.nav a:hover, .nav a[aria-current="page"] { color: var(--ink); border-bottom-color: var(--gold); }
+/* ---------- Topo (preto, para destacar a logo) ---------- */
+.header { background: #000; position: sticky; top: 0; z-index: 20; }
+.header-in { display: flex; align-items: center; gap: 30px; min-height: 80px; }
+.brand img { height: 54px; width: auto; display: block; }
+.nav { display: flex; gap: 28px; flex: 1; }
+.nav a { text-decoration: none; font-weight: 500; color: #D6D6D2; padding: 6px 0; border-bottom: 2px solid transparent; }
+.nav a:hover, .nav a[aria-current="page"] { color: #fff; border-bottom-color: var(--gold-2); }
 .header-cta { display: flex; gap: 10px; align-items: center; margin-left: auto; }
-.menu-btn { display: none; background: none; border: 1px solid var(--line); border-radius: 8px; width: 44px; height: 44px; padding: 10px; cursor: pointer; }
-.menu-btn svg { width: 22px; height: 22px; fill: none; stroke: var(--ink); stroke-width: 2; stroke-linecap: round; }
-.mobile-nav { border-top: 1px solid var(--line); padding: 8px 20px 14px; display: flex; flex-direction: column; }
+.btn-ghost-light { background: transparent; color: #fff; border-color: #3A3B3F; }
+.btn-ghost-light:hover { border-color: #fff; }
+.menu-btn { display: none; background: none; border: 1px solid #3A3B3F; border-radius: 8px; width: 44px; height: 44px; padding: 10px; cursor: pointer; }
+.menu-btn svg { width: 22px; height: 22px; fill: none; stroke: #fff; stroke-width: 2; stroke-linecap: round; }
+.mobile-nav { border-top: 1px solid #222; padding: 8px 20px 14px; display: flex; flex-direction: column; background: #000; }
 .mobile-nav[hidden] { display: none; }
-.mobile-nav a { padding: 12px 0; text-decoration: none; font-weight: 600; border-bottom: 1px solid var(--line); }
+.mobile-nav a { padding: 12px 0; text-decoration: none; font-weight: 600; color: #fff; border-bottom: 1px solid #222; }
 .mobile-nav a:last-child { border-bottom: 0; }
 
 /* ---------- Hero (foto do carro à direita, texto à esquerda) ---------- */
@@ -250,8 +248,8 @@ p { margin: 0 0 14px; }
 @media (max-width: 860px) {
   .nav, .hide-sm { display: none; }
   .menu-btn { display: inline-flex; }
-  .header-in { min-height: 64px; gap: 12px; }
-  .brand img { height: 46px; }
+  .header-in { min-height: 66px; gap: 12px; }
+  .brand img { height: 42px; }
   .header-cta .btn { min-height: 40px; padding: 0 12px; font-size: 14px; }
   .hero-media { position: relative; inset: auto; height: 260px; }
   .hero-media img { -webkit-mask-image: linear-gradient(180deg, #000 70%, transparent 100%); mask-image: linear-gradient(180deg, #000 70%, transparent 100%); object-position: 50% 60%; }
@@ -268,7 +266,6 @@ p { margin: 0 0 14px; }
 }
 @media (max-width: 560px) {
   .wrap { padding: 0 16px; }
-  .topbar-langs { font-size: 12px; }
   .cards { grid-template-columns: 1fr; }
   .grid2, .specs { grid-template-columns: 1fr; }
   .why { grid-template-columns: 1fr; gap: 22px; }
@@ -276,6 +273,6 @@ p { margin: 0 0 14px; }
   .footer-bottom { flex-direction: column; }
   .search .btn { padding: 0 14px; }
   .card-form, .vd-box { padding: 18px; }
-  .header-cta .btn-dark { display: none; }
+  .header-cta .btn-gold { display: none; }
 }
 @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; scroll-behavior: auto !important; } }
