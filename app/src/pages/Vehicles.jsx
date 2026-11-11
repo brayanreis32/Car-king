@@ -102,7 +102,7 @@ function Thumb({ src, big }) {
 // Carro já comprado (fora do Auction Analyzer): registra veículo + compra + orçamento
 function AddVehicleModal({ onClose, onDone }) {
   const [f, setF] = useState({
-    vin: '', year: '', make: '', model: '', trim: '', odometer: '', color: '', title_status: 'clean', stock_number: '',
+    vin: '', year: '', make: '', model: '', trim: '', odometer: '', color: '', body_style: '', title_status: 'clean', stock_number: '',
     source_id: '', purchase_date: today(), final_bid: '', auction_fees: '', expected_sale_price: '',
   })
   const set = (k) => (v) => setF((s) => ({ ...s, [k]: v }))
@@ -117,6 +117,7 @@ function AddVehicleModal({ onClose, onDone }) {
       p_source_id: f.source_id || null, p_expected_sale_price: toNum(f.expected_sale_price),
       p_trim: f.trim || null, p_odometer: toNum(f.odometer), p_color: f.color || null, p_stock_number: f.stock_number || null,
     }), 'Veículo adicionado')
+    if (f.body_style) await q(supabase.from('vehicles').update({ body_style: f.body_style }).eq('id', id)).catch(() => null)
     onDone(id)
   }
   return (
@@ -133,6 +134,7 @@ function AddVehicleModal({ onClose, onDone }) {
           <Field label="Versão"><input value={f.trim} onChange={(e) => set('trim')(e.target.value)} /></Field>
           <Field label="Milhas"><input type="number" inputMode="numeric" value={f.odometer} onChange={(e) => set('odometer')(e.target.value)} /></Field>
           <Field label="Cor"><input value={f.color} onChange={(e) => set('color')(e.target.value)} /></Field>
+          <Field label="Tipo"><Select value={f.body_style} onChange={set('body_style')} placeholder="—" options={options('body_style')} /></Field>
           <Field label="Tipo de título"><Select value={f.title_status} onChange={set('title_status')} options={options('title_status').filter(([v]) => v !== 'unknown')} /></Field>
           <Field label="Número de estoque"><input value={f.stock_number} onChange={(e) => set('stock_number')(e.target.value)} placeholder="CK-0001" /></Field>
         </div>

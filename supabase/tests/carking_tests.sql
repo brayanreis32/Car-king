@@ -627,5 +627,19 @@ set role anon;
 select pg_temp.must_fail('visitante não lê a chave', $q$select access_token from instagram_settings$q$);
 select pg_temp.must_fail('visitante não chama set_instagram_token', $q$select public.set_instagram_token(repeat('x', 60))$q$);
 
+-- ---------------------------------------------------------------------------
+-- Tipo de carroceria e taxa de documentação no site
+-- ---------------------------------------------------------------------------
+reset role;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', false) \g /dev/null
+set role authenticated;
+update companies set doc_fee = 499 where name = 'Car King Auto Sales';
+update vehicles set body_style = 'sedan' where stock_number = 'CK-SITE1';
+reset role;
+select set_config('request.jwt.claim.sub', '', false) \g /dev/null
+set role anon;
+select pg_temp.eq('site recebe tipo e doc fee',
+  (select e->>'body_style' = 'sedan' and (e->>'doc_fee')::numeric = 499 from jsonb_array_elements(public.public_inventory()) e where e->>'stock_number' = 'CK-SITE1'), true);
+
 reset role;
 \echo 'CARKING: todos os testes de regras de negócio passaram.'

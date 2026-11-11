@@ -42,6 +42,20 @@ function photoUrl(u) {
     return j.bucket && j.key ? cdnUrl(j.bucket, j.key) : u
   } catch { return u }
 }
+// Tipo de carroceria (NHTSA "BodyClass" ou texto do anúncio) -> sedan, suv, truck...
+function mapBody(v) {
+  const t = String(v || '').toLowerCase()
+  if (!t) return null
+  if (/pickup|truck/.test(t)) return 'truck'
+  if (/sport utility|suv|crossover|multi-purpose|mpv/.test(t)) return 'suv'
+  if (/minivan|van/.test(t)) return 'van'
+  if (/convertible|cabriolet|roadster/.test(t)) return 'convertible'
+  if (/coupe/.test(t)) return 'coupe'
+  if (/hatchback|liftback/.test(t)) return 'hatchback'
+  if (/wagon/.test(t)) return 'wagon'
+  if (/sedan|saloon/.test(t)) return 'sedan'
+  return null
+}
 function textLines(html) {
   const body = html.replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>|<noscript[\s\S]*?<\/noscript>/gi, '')
   return decode(body.replace(/<[^>]+>/g, '\n')).split('\n').map((l) => l.replace(/\s+/g, ' ').trim()).filter(Boolean)
@@ -193,6 +207,7 @@ function parseCapital(html, url) {
     trim: titleCase(info['trim']) || null,
     odometer: info['odo'] && /^\d+$/.test(info['odo']) && Number(info['odo']) > 0 ? Number(info['odo']) : null,
     color: titleCase(info['ext color']) || null,
+    body_style: mapBody(info['body style'] || info['body'] || info['body type']),
     fuel_type: mapFuel(info['fuel type']),
     transmission: mapTrans(info['transmission']),
     run_condition: status === 'running' ? 'run_and_drive' : status.includes('not') ? 'does_not_start' : 'unknown',
@@ -237,6 +252,7 @@ async function decodeVin(vin) {
     vin, year: Number(d.ModelYear) || null, make: titleCase(d.Make) || null, model: d.Model || null,
     trim: d.Trim || d.Series || null, fuel_type: mapFuel(d.FuelTypePrimary),
     transmission: mapTrans(d.TransmissionStyle),
+    body_style: mapBody(d.BodyClass),
   }
 }
 
@@ -349,7 +365,7 @@ Deno.serve(async (req) => {
     const data = parseListing(html, url.toString())
 
     // completa com a base oficial do VIN o que o anúncio não trouxe
-    if (data.vin && (!data.year || !data.make || !data.model || !data.fuel_type || !data.transmission)) {
+    if (data.vin && (!data.year || !data.make || !data.model || !data.fuel_type || !data.transmission || !data.body_style)) {
       try {
         const v = await decodeVin(data.vin)
         if (v) for (const k of Object.keys(v)) if (!data[k] && v[k]) data[k] = v[k]

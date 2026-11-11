@@ -43,6 +43,7 @@ const VARS = {
   cityLine: esc([B.city, [B.state, B.zip].filter(Boolean).join(' ')].filter(Boolean).join(', ')),
   cityState: esc(cityState),
   inCity: cityState ? ` in ${esc(cityState)}` : '',
+  inCityOrState: cityState ? ` in ${esc(cityState)}` : (B.stateName ? ` in ${esc(B.stateName)}` : ''),
   mapsUrl: address ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(B.name + ', ' + address)}` : '',
   hours: (B.hours || []).map(([d, h]) => `<tr><td>${esc(d)}</td><td>${esc(h)}</td></tr>`).join(''),
   languages: esc((B.languages || []).join(' · ')),

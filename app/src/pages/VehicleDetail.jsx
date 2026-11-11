@@ -195,22 +195,25 @@ function PricesModal({ v, onClose, onDone }) {
     expected_sale_price: v.expected_sale_price ?? '', conservative_sale_price: v.conservative_sale_price ?? '',
     optimistic_sale_price: v.optimistic_sale_price ?? '', listed_price: v.listed_price ?? '', market_value_clean: v.market_value_clean ?? '',
   })
+  const [body, setBody] = useState(v.body_style || '')
   const set = (k) => (val) => setF((s) => ({ ...s, [k]: val }))
   const [run, busy] = useAction()
   const save = async () => {
-    const row = Object.fromEntries(Object.entries(f).map(([k, val]) => [k, toNum(val)]))
+    const row = { ...Object.fromEntries(Object.entries(f).map(([k, val]) => [k, toNum(val)])), body_style: body || null }
     await run(() => q(supabase.from('vehicles').update(row).eq('id', v.id)), 'Preços atualizados')
     onDone()
   }
   return (
-    <Modal title="Preços de venda" onClose={onClose} footer={<><button onClick={onClose}>Cancelar</button><button className="btn-primary" onClick={save} disabled={busy}>Salvar</button></>}>
+    <Modal title="Preços e anúncio no site" onClose={onClose} footer={<><button onClick={onClose}>Cancelar</button><button className="btn-primary" onClick={save} disabled={busy}>Salvar</button></>}>
       <div className="form-grid">
         <Field label="Venda esperada"><MoneyInput value={f.expected_sale_price} onChange={set('expected_sale_price')} /></Field>
         <Field label="Preço anunciado"><MoneyInput value={f.listed_price} onChange={set('listed_price')} /></Field>
         <Field label="Cenário conservador"><MoneyInput value={f.conservative_sale_price} onChange={set('conservative_sale_price')} /></Field>
         <Field label="Cenário otimista"><MoneyInput value={f.optimistic_sale_price} onChange={set('optimistic_sale_price')} /></Field>
         <Field label="Valor de mercado (clean)"><MoneyInput value={f.market_value_clean} onChange={set('market_value_clean')} /></Field>
+        <Field label="Tipo de carroceria (site)"><Select value={body} onChange={setBody} placeholder="—" options={options('body_style')} /></Field>
       </div>
+      <p className="small muted">O <b>preço anunciado</b> e o <b>tipo</b> aparecem no site quando o carro está "Pronto para venda" ou "Anunciado".</p>
     </Modal>
   )
 }

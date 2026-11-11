@@ -169,7 +169,7 @@ function ReminderTemplate({ company, canEdit, onSaved }) {
 
 // Dados da empresa que aparecem no contrato de venda + multa por atraso
 function CompanyContract({ company, canEdit, onSaved }) {
-  const keys = ['legal_name', 'dealer_license', 'finance_license', 'phone', 'email', 'address', 'city', 'state', 'zip', 'late_fee_pct', 'late_fee_grace_days', 'contract_terms']
+  const keys = ['legal_name', 'dealer_license', 'finance_license', 'phone', 'email', 'address', 'city', 'state', 'zip', 'late_fee_pct', 'late_fee_grace_days', 'doc_fee', 'contract_terms']
   const [f, setF] = useState(() => Object.fromEntries(keys.map((k) => [k, company[k] ?? ''])))
   const set = (k) => (e) => setF((s) => ({ ...s, [k]: e.target.value }))
   const [run, busy] = useAction()
@@ -177,6 +177,7 @@ function CompanyContract({ company, canEdit, onSaved }) {
     const row = Object.fromEntries(keys.map((k) => [k, typeof f[k] === 'string' ? (f[k].trim() || null) : f[k]]))
     row.late_fee_pct = toNum(f.late_fee_pct) ?? 5
     row.late_fee_grace_days = toNum(f.late_fee_grace_days) ?? 15
+    row.doc_fee = toNum(f.doc_fee) ?? 0
     if (row.state) row.state = row.state.toUpperCase()
     await run(() => q(supabase.from('companies').update(row).eq('id', company.id)), 'Dados do contrato salvos')
     onSaved()
@@ -196,7 +197,9 @@ function CompanyContract({ company, canEdit, onSaved }) {
         <Field label="Cidade">{inp('city')}</Field>
         <Field label="Estado">{inp('state', { maxLength: 2, placeholder: 'MA' })}</Field>
         <Field label="ZIP">{inp('zip', { inputMode: 'numeric' })}</Field>
+        <Field label="Taxa de documentação (doc fee)">{inp('doc_fee', { type: 'number', inputMode: 'decimal', placeholder: '0 = não cobra' })}</Field>
       </div>
+      <p className="small muted" style={{ margin: 0 }}>A taxa de documentação aparece no site junto do preço ("total com taxas").</p>
       <h3 style={{ margin: '6px 0 0' }}>Venda parcelada: multa por atraso</h3>
       <div className="form-grid">
         <Field label="Multa (% da parcela em atraso)">{inp('late_fee_pct', { type: 'number', inputMode: 'decimal', step: '0.5' })}</Field>

@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
 <!--#include head-->
-    <title>{{name}} · Used Cars{{inCity}} · In-House Financing</title>
+    <title>Used Cars for Sale{{inCityOrState}} | {{name}}</title>
     <meta name="description" content="Quality used cars, SUVs and trucks{{inCity}}. Every car inspected and reconditioned, honest prices and in-house financing. See our inventory online." />
     <meta property="og:title" content="{{name}} · Used Cars{{inCity}}" />
     <meta property="og:description" content="Quality used cars at honest prices. In-house financing available." />
@@ -14,50 +14,57 @@
 <!--#include header-->
     <main id="main">
       <section class="hero">
-        <div class="hero-media" aria-hidden="true"><img src="./hero.webp" alt="" width="1920" height="1080" fetchpriority="high" /></div>
+        <img class="hero-bg" src="./hero.webp" alt="" width="1920" height="906" fetchpriority="high" />
         <div class="wrap hero-in">
-          <div class="hero-text">
-            <p class="eyebrow">Pre-owned cars{{inCity}}</p>
-            <h1>Good cars.<br />Honest prices.<br /><span class="gold-text">Financing that works.</span></h1>
-            <p class="hero-sub">Every vehicle is inspected and reconditioned before it goes on sale. Pay cash, bring your own lender, or finance with us.</p>
-            <form class="search" action="./inventory.html" role="search">
-              <label class="sr" for="q">Search inventory</label>
-              <input id="q" name="q" type="search" placeholder="Search by make or model, e.g. Camry" autocomplete="off" />
-              <button class="btn btn-dark" type="submit">Search</button>
-            </form>
-            <div class="hero-links">
-              <a href="./inventory.html">View all inventory →</a>
-              <a href="./financing.html">Get pre-approved →</a>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section class="tiles">
-        <div class="wrap tiles-grid">
-          <a class="tile" href="./financing.html">
-            <span class="tile-k">In-house financing</span>
-            <span class="tile-t">Buy here, pay here. Weekly, bi-weekly or monthly payments.</span>
-            <span class="tile-a">How it works</span>
-          </a>
-          <a class="tile tile-dark" href="./financing.html#apply">
-            <span class="tile-k">Apply online</span>
-            <span class="tile-t">Get pre-approved in a few minutes. No Social Security Number needed to start.</span>
-            <span class="tile-a">Start application</span>
-          </a>
-          <a class="tile" href="./inventory.html?max=10000">
-            <span class="tile-k">Under $10,000</span>
-            <span class="tile-t">Reliable everyday cars that fit your budget.</span>
-            <span class="tile-a">Browse cars</span>
-          </a>
+          <h1>Quality Used Cars, SUVs and Trucks{{inCityOrState}}</h1>
+          <p class="hero-sub">Shop our inventory online and get pre-approved for financing. In-house financing available.</p>
+          <form class="search" action="./inventory.html" role="search">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
+            <label class="sr" for="q">Search inventory</label>
+            <input id="q" name="q" type="search" placeholder="Search by make, model, year" autocomplete="off" />
+          </form>
         </div>
       </section>
 
       <section class="section">
         <div class="wrap">
+          <h2 class="title-line">Browse by Style</h2>
+          <div class="styles" id="styles"></div>
+        </div>
+      </section>
+
+      <section class="ctas">
+        <a class="cta cta-dark" href="./contact.html?topic=trade_in">
+          <svg viewBox="0 0 48 48" aria-hidden="true"><path d="M30 18a8 8 0 1 1-6.9 12L10 43l-4-4 4-4-3-3 4-4 3 3 6-6A8 8 0 0 1 30 18z"/><circle cx="31" cy="25" r="2"/></svg>
+          <h3>Trading in? Tell us about your car and get an offer.</h3>
+          <span class="btn btn-line-light">Get your trade-in value ›</span>
+        </a>
+        <a class="cta cta-gold" href="./financing.html">
+          <svg viewBox="0 0 48 48" aria-hidden="true"><rect x="5" y="8" width="38" height="28" rx="3"/><path d="M5 15h38M12 9v-2M36 9v-2M22 22h12M22 28h8M12 22h4"/></svg>
+          <h3>Save time at the dealership with an online credit application.</h3>
+          <span class="btn btn-line-dark">Apply online ›</span>
+        </a>
+        <a class="cta cta-dark" href="./inventory.html?max=10000">
+          <svg viewBox="0 0 48 48" aria-hidden="true"><path d="M24 6v36M32 13H20a6 6 0 0 0 0 12h8a6 6 0 0 1 0 12H14"/></svg>
+          <h3>View our selection of vehicles under $10,000.</h3>
+          <span class="btn btn-line-light">Browse vehicles under $10K ›</span>
+        </a>
+      </section>
+
+      <section class="section">
+        <div class="wrap welcome">
+          <h2>Welcome to {{name}}</h2>
+          <h3>Pre-owned cars, SUVs and trucks{{inCityOrState}}</h3>
+          <p>{{name}} is a local used car dealer. We buy every vehicle ourselves, have it inspected and repaired, and clean it before it goes on sale. Each car on our website shows the real price, mileage, VIN and title status, so you know what you are looking at before you visit.</p>
+          <p>We offer <b>in-house financing</b> with weekly, bi-weekly or monthly payments, and we also work with outside lenders. First-time buyers, low credit and no credit are welcome to apply. Our team speaks <b>English, Portuguese and Spanish</b>.</p>
+        </div>
+      </section>
+
+      <section class="section section-alt">
+        <div class="wrap">
           <div class="section-head">
-            <h2>Latest arrivals</h2>
-            <a class="link" href="./inventory.html">All inventory →</a>
+            <h2 class="title-line">New Arrivals</h2>
+            <a class="btn btn-light" href="./inventory.html">All Inventory ›</a>
           </div>
           <div class="cards" id="featured" aria-live="polite">
             <div class="card skeleton"></div><div class="card skeleton"></div><div class="card skeleton"></div><div class="card skeleton"></div>
@@ -65,81 +72,50 @@
         </div>
       </section>
 
-      <section class="section section-alt">
-        <div class="wrap">
-          <h2 class="center">Why buy from {{name}}</h2>
-          <div class="why">
-            <div class="why-item">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 12l2 2 4-4M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z"/></svg>
-              <h3>Inspected and reconditioned</h3>
-              <p>Mechanical inspection, repairs and full detailing before every sale.</p>
-            </div>
-            <div class="why-item">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16v10H4zM4 10h16M8 15h3"/></svg>
-              <h3>Financing for real people</h3>
-              <p>First-time buyers, low credit or no credit. Let's talk about a plan that fits.</p>
-            </div>
-            <div class="why-item">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h7l5 5v13H7zM14 3v5h5M10 13h6M10 17h6"/></svg>
-              <h3>Clear paperwork</h3>
-              <p>Title status disclosed on every car. No surprises at signing.</p>
-            </div>
-            <div class="why-item">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/></svg>
-              <h3>We speak your language</h3>
-              <p>{{languages}}</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
       <section class="section ig-section" id="instagram" hidden>
         <div class="wrap">
           <div class="section-head">
-            <div>
-              <h2>Happy customers</h2>
-              <p class="muted" style="margin:0">Real deliveries, straight from our Instagram.</p>
-            </div>
-            <!--#if instagram--><a class="link" href="{{instagram}}" target="_blank" rel="noopener">Follow us on Instagram →</a><!--/if instagram-->
+            <h2 class="title-line">Happy Customers</h2>
+            <!--#if instagram--><a class="btn btn-light" href="{{instagram}}" target="_blank" rel="noopener">Follow us on Instagram ›</a><!--/if instagram-->
           </div>
           <div class="ig-grid" id="ig-grid"></div>
         </div>
       </section>
 
-      <section class="section">
-        <div class="wrap narrow">
-          <h2>Your next car{{inCity}}</h2>
-          <p>{{name}} is a local used car dealer. We pick every vehicle ourselves, fix what needs fixing and price it fairly, so you can drive away with confidence. Browse our inventory online, send us a message, and come see the car in person.</p>
-          <p>Need financing? Besides working with outside lenders, we offer in-house payment plans with a down payment and weekly, bi-weekly or monthly installments. Apply online in a few minutes and we will call you back.</p>
+      <section class="section" id="makes-section" hidden>
+        <div class="wrap">
+          <h2 class="title-line">Browse Inventory</h2>
+          <div class="makes" id="makes"></div>
         </div>
       </section>
 
       <section class="section section-alt">
-        <div class="wrap visit">
-          <div>
-            <h2>Visit or contact us</h2>
-            <p class="muted">Questions about a car, financing or a trade-in? Send us a message and we usually reply the same day.</p>
-            <!--#if street--><p class="lead">{{street}}<br />{{cityLine}}</p><!--/if street-->
-            <!--#if byAppointment--><p>Visits by appointment. Send us a message and we will set a time.</p><!--/if byAppointment-->
-            <div class="contact-btns">
-              <!--#if phone--><a class="btn btn-dark" href="tel:{{phoneHref}}">Call {{phone}}</a><!--/if phone-->
-              <!--#if waNumber--><a class="btn btn-line" href="https://wa.me/{{waNumber}}" target="_blank" rel="noopener">WhatsApp</a><!--/if waNumber-->
-              <!--#if mapsUrl--><a class="btn btn-line" href="{{mapsUrl}}" target="_blank" rel="noopener">Directions</a><!--/if mapsUrl-->
+        <div class="wrap">
+          <h2 class="center visit-title">Visit {{name}}{{inCityOrState}}</h2>
+          <div class="visit-card">
+            <div class="visit-info">
+              <svg class="pin" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s7-6.5 7-12a7 7 0 0 0-14 0c0 5.5 7 12 7 12z"/><circle cx="12" cy="10" r="2.5"/></svg>
+              <h3>{{name}}</h3>
+              <!--#if street--><p><b>Street address:</b><br />{{street}}<br />{{cityLine}}</p><!--/if street-->
+              <!--#if byAppointment--><p><b>Visits by appointment.</b><br />Call or send a message to schedule.</p><!--/if byAppointment-->
+              <!--#if phone--><p><b>Phone:</b><br /><a href="tel:{{phoneHref}}">{{phone}}</a></p><!--/if phone-->
+              <!--#if email--><p><b>E-mail:</b><br /><a href="mailto:{{email}}">{{email}}</a></p><!--/if email-->
+              <!--#if hours--><table class="hours-table"><thead><tr><th>Day</th><th>Sales Hours</th></tr></thead><tbody>{{hours}}</tbody></table><!--/if hours-->
+              <!--#if mapsUrl--><a class="btn btn-dark" href="{{mapsUrl}}" target="_blank" rel="noopener">Get directions</a><!--/if mapsUrl-->
             </div>
-            <!--#if hours--><table class="hours"><tbody>{{hours}}</tbody></table><!--/if hours-->
+            <form class="form visit-form" data-lead="contact" novalidate>
+              <h3>Send us a message</h3>
+              <div class="grid2">
+                <label>Name<input name="name" autocomplete="name" required /></label>
+                <label>Phone<input name="phone" type="tel" autocomplete="tel" inputmode="tel" /></label>
+              </div>
+              <label>E-mail<input name="email" type="email" autocomplete="email" /></label>
+              <label>Message<textarea name="message" rows="4" placeholder="What are you looking for?"></textarea></label>
+              <label class="hp" aria-hidden="true">Leave empty<input name="website" tabindex="-1" autocomplete="off" /></label>
+              <button class="btn btn-gold" type="submit">Send message</button>
+              <p class="form-msg" role="status"></p>
+            </form>
           </div>
-          <form class="form card-form" data-lead="contact" novalidate>
-            <h3>Send us a message</h3>
-            <div class="grid2">
-              <label>Name<input name="name" autocomplete="name" required /></label>
-              <label>Phone<input name="phone" type="tel" autocomplete="tel" inputmode="tel" /></label>
-            </div>
-            <label>E-mail<input name="email" type="email" autocomplete="email" /></label>
-            <label>Message<textarea name="message" rows="3" placeholder="What are you looking for?"></textarea></label>
-            <label class="hp" aria-hidden="true">Leave empty<input name="website" tabindex="-1" autocomplete="off" /></label>
-            <button class="btn btn-dark" type="submit">Send message</button>
-            <p class="form-msg" role="status"></p>
-          </form>
         </div>
       </section>
     </main>

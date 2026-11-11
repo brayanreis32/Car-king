@@ -113,6 +113,7 @@ export const LABELS = {
     stale_vehicle: 'Veículo parado', part_late: 'Peça atrasada', budget_overrun: 'Orçamento estourado', profit_below_target: 'Lucro abaixo da meta',
     document_pending: 'Documento pendente', repair_overdue: 'Reparo atrasado', payable_due: 'Conta a pagar', sold_with_balance: 'Vendido com saldo',
   },
+  body_style: { sedan: 'Sedan', suv: 'SUV', truck: 'Picape (truck)', hatchback: 'Hatchback', coupe: 'Cupê', van: 'Van / minivan', wagon: 'Perua (wagon)', convertible: 'Conversível', other: 'Outro' },
   payment_method: { cash: 'Dinheiro', check: 'Cheque', wire: 'Transferência', zelle: 'Zelle', card: 'Cartão', financing: 'Financiamento bancário', installments: 'Parcelado (próprio)', mixed: 'Misto', other: 'Outro' },
 }
 export const label = (group, value) => LABELS[group]?.[value] ?? value ?? '—'

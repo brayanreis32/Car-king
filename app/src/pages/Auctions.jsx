@@ -87,7 +87,7 @@ export default function Auctions() {
 
 const EMPTY = {
   source_id: '', auction_name: '', lot_number: '', vin: '', year: '', make: '', model: '', trim: '', odometer: '',
-  color: '', fuel_type: '', transmission: '', location_city: '', location_state: '', auction_date: '',
+  color: '', body_style: '', fuel_type: '', transmission: '', location_city: '', location_state: '', auction_date: '',
   title_status: 'unknown', title_state: '', primary_damage: '', secondary_damage: '', run_condition: 'unknown', has_keys: '',
   listing_url: '', current_bid: '', buy_now_price: '', market_value_clean: '', expected_value_repaired: '', notes: '',
 }
@@ -124,7 +124,7 @@ export function OpportunityForm({ initial, onClose, onSaved }) {
         location_city: str(d.location_city) || s.location_city, location_state: str(d.location_state) || s.location_state,
         vin: str(d.vin) || s.vin, year: str(d.year) || s.year, make: str(d.make) || s.make, model: str(d.model) || s.model,
         trim: str(d.trim) || s.trim, odometer: str(d.odometer) || s.odometer, color: str(d.color) || s.color,
-        fuel_type: d.fuel_type || s.fuel_type, transmission: d.transmission || s.transmission,
+        fuel_type: d.fuel_type || s.fuel_type, transmission: d.transmission || s.transmission, body_style: d.body_style || s.body_style,
         title_status: d.title_status && d.title_status !== 'unknown' ? d.title_status : s.title_status,
         run_condition: d.run_condition && d.run_condition !== 'unknown' ? d.run_condition : s.run_condition,
         has_keys: d.has_keys === null || d.has_keys === undefined ? s.has_keys : String(d.has_keys),
@@ -145,7 +145,7 @@ export function OpportunityForm({ initial, onClose, onSaved }) {
       const { data: d } = await callFunction('import-listing', { vin: f.vin })
       setF((s) => ({
         ...s, year: s.year || String(d.year || ''), make: s.make || d.make || '', model: s.model || d.model || '',
-        trim: s.trim || d.trim || '', fuel_type: s.fuel_type || d.fuel_type || '', transmission: s.transmission || d.transmission || '',
+        trim: s.trim || d.trim || '', fuel_type: s.fuel_type || d.fuel_type || '', transmission: s.transmission || d.transmission || '', body_style: s.body_style || d.body_style || '',
       }))
       toast('Dados do VIN preenchidos')
     } catch (e) { toast(e.message, 'error') } finally { setImporting(false) }
@@ -156,7 +156,7 @@ export function OpportunityForm({ initial, onClose, onSaved }) {
     const row = {
       source_id: f.source_id || null, auction_name: f.auction_name || null, lot_number: f.lot_number || null,
       vin: f.vin || null, year: toNum(f.year), make: f.make, model: f.model, trim: f.trim || null,
-      odometer: toNum(f.odometer), color: f.color || null, fuel_type: f.fuel_type || null, transmission: f.transmission || null,
+      odometer: toNum(f.odometer), color: f.color || null, fuel_type: f.fuel_type || null, transmission: f.transmission || null, body_style: f.body_style || null,
       location_city: f.location_city || null, location_state: f.location_state || null,
       auction_date: f.auction_date ? `${f.auction_date}T12:00:00` : null,
       title_status: f.title_status, title_state: f.title_state || null,
@@ -227,6 +227,7 @@ export function OpportunityForm({ initial, onClose, onSaved }) {
           </Field>
           <Field label="Milhas"><input type="number" inputMode="numeric" value={f.odometer} onChange={ev('odometer')} /></Field>
           <Field label="Cor"><input value={f.color} onChange={ev('color')} /></Field>
+          <Field label="Tipo"><Select value={f.body_style} onChange={set('body_style')} placeholder="—" options={options('body_style')} /></Field>
           <Field label="Combustível"><Select value={f.fuel_type} onChange={set('fuel_type')} placeholder="—" options={options('fuel_type')} /></Field>
           <Field label="Câmbio"><Select value={f.transmission} onChange={set('transmission')} placeholder="—" options={options('transmission')} /></Field>
         </div>

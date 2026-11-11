@@ -26,7 +26,10 @@ async function main() {
 
   root.querySelector('.vd-title').textContent = name
   root.querySelector('.vd-trim').textContent = [v.trim, miles(v.mileage)].filter(Boolean).join(' · ')
-  root.querySelector('.vd-price').textContent = money(v.price)
+  const fee = Number(v.doc_fee) || 0
+  root.querySelector('.vd-price').innerHTML = Number(v.price) > 0 && fee
+    ? `<table class="price-table big"><tr><td>Vehicle Price</td><td>${money(v.price)}</td></tr><tr class="small-row"><td>Dealer Documentation Fee</td><td>${money(fee)}</td></tr><tr class="total"><td>Total with fees</td><td>${money(Number(v.price) + fee)}</td></tr></table>`
+    : esc(money(v.price))
   const badges = []
   if (v.reserved) badges.push('<span class="badge badge-reserved">Reserved · ask about availability</span>')
   if (v.title_status && v.title_status !== 'clean' && v.title_status !== 'unknown') badges.push(`<span class="badge badge-title">${esc(LABEL.title_status[v.title_status] || v.title_status)}</span>`)
@@ -55,7 +58,7 @@ async function main() {
 
   // calculadora
   const calc = root.querySelector('#calc')
-  calc.price.value = Number(v.price) > 0 ? Math.round(v.price) : ''
+  calc.price.value = Number(v.price) > 0 ? Math.round(Number(v.price) + (Number(v.doc_fee) || 0)) : ''
   calc.down.value = Number(v.price) > 0 ? Math.round(v.price * 0.2 / 100) * 100 : ''
   const out = root.querySelector('#calc-out')
   const update = () => {

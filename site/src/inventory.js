@@ -1,4 +1,4 @@
-import { carName, esc, getInventory, initChrome, loadError, renderCards } from './lib.js'
+import { bodyOf, carName, esc, getInventory, initChrome, loadError, renderCards } from './lib.js'
 
 initChrome('inventory')
 
@@ -6,7 +6,7 @@ const form = document.getElementById('filters')
 const list = document.getElementById('list')
 const count = document.getElementById('count')
 const params = new URLSearchParams(location.search)
-for (const k of ['q', 'make', 'max', 'sort']) if (params.get(k) && form.elements[k]) form.elements[k].value = params.get(k)
+for (const k of ['q', 'type', 'make', 'max', 'sort']) if (params.get(k) && form.elements[k]) form.elements[k].value = params.get(k)
 
 let cars = []
 const SORT = {
@@ -23,6 +23,7 @@ function apply() {
   const rows = cars.filter((v) => {
     const text = `${carName(v)} ${v.trim || ''} ${v.color || ''}`.toLowerCase()
     if (terms.some((t) => !text.includes(t))) return false
+    if (f.type && bodyOf(v) !== f.type) return false
     if (f.make && v.make !== f.make) return false
     if (f.max && !(Number(v.price) > 0 && Number(v.price) <= Number(f.max))) return false
     return true

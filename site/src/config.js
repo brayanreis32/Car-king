@@ -14,7 +14,8 @@ export const BUSINESS = {
 
   street: '',         // ex.: '1234 W Colonial Dr'
   city: '',           // ex.: 'Orlando'
-  state: '',          // ex.: 'FL'
+  state: '',          // ex.: 'MA'
+  stateName: 'Massachusetts', // usado nos títulos enquanto não tiver cidade
   zip: '',            // ex.: '32804'
   byAppointment: true, // true = "Visits by appointment" (sem loja aberta ao público). Trocar para false quando tiver endereço.
 
