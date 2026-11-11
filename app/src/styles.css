@@ -350,3 +350,52 @@ tfoot td { font-weight: 600; border-bottom: 0; }
 .doc-thumb .doc-del { position: absolute; top: 4px; right: 4px; background: rgba(255,255,255,.92); border-radius: 6px; padding: 2px 4px; min-height: 0; }
 .contact-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 @media (max-width: 760px) { .seg { width: 100%; } .seg button { flex: 1; padding: 8px 6px; } .doc-thumbs { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* ---------- Contrato de venda (tela e impressão) ---------- */
+.contract { background: #fff; color: #111; max-width: 8.5in; margin: 0 auto; padding: 0.55in 0.6in; border: 1px solid var(--border); border-radius: 6px; font-size: 10.5pt; line-height: 1.38; font-family: var(--font); }
+.ct-head { display: flex; justify-content: space-between; align-items: center; gap: 20px; border-bottom: 2px solid #111; padding-bottom: 10px; }
+.ct-head img { height: 64px; width: auto; }
+.ct-dealer { text-align: right; font-size: 9pt; color: #333; }
+.ct-dealer b { font-size: 11pt; color: #111; }
+.ct-title { text-align: center; font-size: 16pt; letter-spacing: .04em; text-transform: uppercase; margin: 14px 0 4px; }
+.ct-meta { display: flex; justify-content: space-between; font-size: 9pt; color: #444; margin-bottom: 10px; }
+.ct-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+.ct-box { border: 1px solid #222; border-radius: 4px; padding: 8px 10px; margin-bottom: 10px; break-inside: avoid; }
+.ct-grid2 .ct-box { margin-bottom: 0; }
+.ct-box h3, .ct-terms h3 { font-size: 9.5pt; text-transform: uppercase; letter-spacing: .06em; margin: 0 0 6px; }
+.ct-box p { margin: 0 0 5px; font-size: 9.5pt; }
+.ct-line { display: flex; gap: 8px; font-size: 9.5pt; padding: 2px 0; border-bottom: 1px dotted #bbb; }
+.ct-line > span:first-child { color: #555; min-width: 110px; }
+.ct-row { display: flex; justify-content: space-between; font-size: 9.5pt; padding: 3px 0; border-bottom: 1px dotted #bbb; }
+.ct-row.total { font-weight: 700; border-bottom: 0; border-top: 1px solid #111; }
+.ct-blank { display: inline-block; border-bottom: 1px solid #333; height: 1em; }
+.ct-tila { display: grid; grid-template-columns: repeat(5, 1fr); border: 2px solid #111; margin-bottom: 10px; break-inside: avoid; }
+.ct-tila > div { padding: 8px; border-right: 1px solid #111; display: flex; flex-direction: column; gap: 3px; }
+.ct-tila > div:last-child { border-right: 0; }
+.ct-tila b { font-size: 8.5pt; text-transform: uppercase; }
+.ct-tila small { font-size: 7.5pt; color: #444; flex: 1; }
+.ct-tila strong { font-size: 13pt; }
+.ct-sched { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0 14px; font-size: 8.5pt; }
+.ct-sched > div { display: grid; grid-template-columns: 34px 1fr auto; border-bottom: 1px dotted #ccc; padding: 1px 0; }
+.ct-terms ol { margin: 0 0 8px; padding-left: 24px; font-size: 8.8pt; }
+.ct-terms li { margin-bottom: 3px; }
+.ct-notice { border: 2px solid #111; padding: 8px 10px; font-size: 9pt; margin: 8px 0 14px; break-inside: avoid; }
+.ct-sign { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; margin-top: 30px; break-inside: avoid; }
+.ct-sign > div { display: flex; flex-direction: column; font-size: 8.5pt; color: #333; }
+.ct-sigline { border-bottom: 1px solid #111; height: 34px; margin-bottom: 4px; }
+.ct-small { font-size: 8pt; color: #555; margin: 4px 0 0; }
+.contract .center { text-align: center; }
+@media print {
+  @page { size: letter; margin: 0.45in; }
+  body, html, #root { background: #fff !important; height: auto; }
+  .sidebar, .bottom-nav, .mobile-top, .no-print, .toast { display: none !important; }
+  .shell { display: block !important; }
+  .main { padding: 0 !important; margin: 0 !important; max-width: none !important; overflow: visible !important; }
+  .contract { border: 0; border-radius: 0; padding: 0; max-width: none; }
+}
+@media (max-width: 760px) {
+  .contract { padding: 18px 14px; font-size: 9.5pt; }
+  .ct-grid2, .ct-sign { grid-template-columns: 1fr; }
+  .ct-tila { grid-template-columns: 1fr 1fr; }
+  .ct-sched { grid-template-columns: 1fr 1fr; }
+}

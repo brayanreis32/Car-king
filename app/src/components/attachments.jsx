@@ -21,7 +21,7 @@ function checkFile(file) {
   if (file.size > MAX_MB * 1024 * 1024) throw new Error(`"${file.name}" passa de ${MAX_MB} MB.`)
 }
 
-export async function uploadAttachment(file, { companyId, entityType, entityId, vehicleId }) {
+export async function uploadAttachment(file, { companyId, entityType, entityId, vehicleId, kind }) {
   checkFile(file)
   const safe = file.name.normalize('NFD').replace(/[^\w.-]+/g, '_')
   const path = `${companyId}/${entityType}/${entityId}/${Date.now()}-${safe}`
@@ -29,7 +29,7 @@ export async function uploadAttachment(file, { companyId, entityType, entityId, 
   if (error) throw new Error(`Falha ao enviar "${file.name}": ${error.message}`)
   await q(supabase.from('attachments').insert({
     entity_type: entityType, entity_id: entityId, vehicle_id: vehicleId || null,
-    kind: entityType === 'customer' ? 'document' : file.type === 'application/pdf' ? 'invoice' : 'receipt',
+    kind: kind || (entityType === 'customer' ? 'document' : file.type === 'application/pdf' ? 'invoice' : 'receipt'),
     bucket: 'documents', path, file_name: file.name, mime_type: file.type || null, size_bytes: file.size,
   }))
 }
@@ -78,7 +78,7 @@ export function FilePick({ files, onChange, label = 'Anexar nota ou comprovante 
 }
 
 // Lista + envio de anexos de um registro já existente
-export function Attachments({ entityType, entityId, vehicleId, title = 'Notas e comprovantes', onChange }) {
+export function Attachments({ entityType, entityId, vehicleId, kind, title = 'Notas e comprovantes', onChange }) {
   const { company, can } = useApp()
   const { data, loading, reload } = useLoad(() =>
     q(supabase.from('attachments').select('*').eq('entity_type', entityType).eq('entity_id', entityId).order('created_at')), [entityType, entityId])
@@ -87,7 +87,7 @@ export function Attachments({ entityType, entityId, vehicleId, title = 'Notas e 
   const upload = async (list) => {
     const files = Array.from(list || [])
     if (!files.length) return
-    await run(() => uploadAll(files, { companyId: company.id, entityType, entityId, vehicleId }), files.length > 1 ? 'Arquivos anexados' : 'Arquivo anexado')
+    await run(() => uploadAll(files, { companyId: company.id, entityType, entityId, vehicleId, kind }), files.length > 1 ? 'Arquivos anexados' : 'Arquivo anexado')
     ref.current.value = ''
     reload(); onChange?.()
   }

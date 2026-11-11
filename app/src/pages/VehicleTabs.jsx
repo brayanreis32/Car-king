@@ -611,6 +611,16 @@ export function Sale({ vehicle, pa, onChange }) {
             {sale.notes && <div><span className="muted">Obs.</span><span>{sale.notes}</span></div>}
           </div>
         </div>
+        <div className="card row between">
+          <div>
+            <h2 style={{ margin: 0 }}>Contrato</h2>
+            <div className="muted small">{sale.contract_signed_at ? `Contrato assinado anexado em ${date(sale.contract_signed_at)}.` : parcelado ? 'Contrato de venda parcelada com parcelas e multa por atraso. Imprima, colha a assinatura e anexe.' : 'Contrato de compra e venda à vista. Imprima, colha a assinatura e anexe.'}</div>
+          </div>
+          <div className="row">
+            {sale.contract_signed_at ? <Badge tone="success">Assinado</Badge> : <Badge tone="warning">Falta assinar</Badge>}
+            <Link to={`/contrato/${sale.id}`} className="btn btn-primary btn-sm">{sale.contract_signed_at ? 'Ver contrato' : 'Gerar contrato'}</Link>
+          </div>
+        </div>
         {schedule.length > 0 && (
           <div className="card pad-0">
             <div className="card-title" style={{ padding: '16px 16px 0' }}>

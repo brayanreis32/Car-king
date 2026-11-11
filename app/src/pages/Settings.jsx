@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { DEFAULT_REMINDER, money, q, reminderMessage, supabase, toNum } from '../lib.js'
+import { DEFAULT_REMINDER, date, money, q, reminderMessage, rpc, supabase, toNum } from '../lib.js'
 import { ErrorBox, Field, Icon, Modal, MoneyInput, Spinner, useAction, useLoad } from '../components/ui.jsx'
 import { useApp } from '../App.jsx'
 
@@ -15,8 +15,10 @@ export default function Settings() {
           <span className="btn btn-sm">Abrir</span>
         </Link>
       )}
+      <CompanyContract company={company} canEdit={can('settings', 'edit')} onSaved={reloadCompany} />
       <Goals company={company} canEdit={can('settings', 'edit')} onSaved={reloadCompany} />
       <ReminderTemplate company={company} canEdit={can('settings', 'edit')} onSaved={reloadCompany} />
+      {can('settings', 'edit') && <InstagramFeed />}
       <Sources canEdit={can('auction', 'edit')} />
     </div>
   )
@@ -160,6 +162,110 @@ function ReminderTemplate({ company, canEdit, onSaved }) {
           <button className="btn-primary" onClick={save} disabled={busy}>Salvar mensagem</button>
           <button className="btn-ghost btn-sm" onClick={() => setText(DEFAULT_REMINDER)}>Restaurar padrão (inglês)</button>
         </div>
+      )}
+    </div>
+  )
+}
+
+// Dados da empresa que aparecem no contrato de venda + multa por atraso
+function CompanyContract({ company, canEdit, onSaved }) {
+  const keys = ['legal_name', 'dealer_license', 'finance_license', 'phone', 'email', 'address', 'city', 'state', 'zip', 'late_fee_pct', 'late_fee_grace_days', 'contract_terms']
+  const [f, setF] = useState(() => Object.fromEntries(keys.map((k) => [k, company[k] ?? ''])))
+  const set = (k) => (e) => setF((s) => ({ ...s, [k]: e.target.value }))
+  const [run, busy] = useAction()
+  const save = async () => {
+    const row = Object.fromEntries(keys.map((k) => [k, typeof f[k] === 'string' ? (f[k].trim() || null) : f[k]]))
+    row.late_fee_pct = toNum(f.late_fee_pct) ?? 5
+    row.late_fee_grace_days = toNum(f.late_fee_grace_days) ?? 15
+    if (row.state) row.state = row.state.toUpperCase()
+    await run(() => q(supabase.from('companies').update(row).eq('id', company.id)), 'Dados do contrato salvos')
+    onSaved()
+  }
+  const inp = (k, props = {}) => <input value={f[k]} onChange={set(k)} disabled={!canEdit} {...props} />
+  return (
+    <div className="card stack">
+      <h2>Dados da empresa para contratos</h2>
+      <p className="small muted" style={{ margin: 0 }}>Aparecem no cabeçalho do contrato de venda (à vista e parcelada).</p>
+      <div className="form-grid">
+        <Field label="Razão social (nome legal)" span>{inp('legal_name', { placeholder: company.name })}</Field>
+        <Field label="Licença de dealer (Class 2) nº">{inp('dealer_license')}</Field>
+        <Field label="Licença de financiamento (Division of Banks) nº">{inp('finance_license', { placeholder: 'para venda parcelada própria' })}</Field>
+        <Field label="Telefone">{inp('phone', { type: 'tel' })}</Field>
+        <Field label="E-mail">{inp('email', { type: 'email' })}</Field>
+        <Field label="Endereço" span>{inp('address')}</Field>
+        <Field label="Cidade">{inp('city')}</Field>
+        <Field label="Estado">{inp('state', { maxLength: 2, placeholder: 'MA' })}</Field>
+        <Field label="ZIP">{inp('zip', { inputMode: 'numeric' })}</Field>
+      </div>
+      <h3 style={{ margin: '6px 0 0' }}>Venda parcelada: multa por atraso</h3>
+      <div className="form-grid">
+        <Field label="Multa (% da parcela em atraso)">{inp('late_fee_pct', { type: 'number', inputMode: 'decimal', step: '0.5' })}</Field>
+        <Field label="Cobrar depois de quantos dias de atraso">{inp('late_fee_grace_days', { type: 'number', inputMode: 'numeric' })}</Field>
+      </div>
+      <p className="small muted" style={{ margin: 0 }}>Em Massachusetts a multa só pode ser cobrada depois de 15 dias de atraso e até 5% da parcela (G.L. c. 255B §11).</p>
+      <Field label="Cláusulas extras do contrato (opcional, em inglês)">
+        <textarea rows={3} value={f.contract_terms} onChange={set('contract_terms')} disabled={!canEdit} placeholder="Ex.: Vehicle sold with 30-day / 1,000-mile limited powertrain warranty." />
+      </Field>
+      {canEdit && <div><button className="btn-primary" onClick={save} disabled={busy}>Salvar dados do contrato</button></div>}
+    </div>
+  )
+}
+
+// Instagram no site: o administrador cola a chave de acesso gerada no Meta for Developers
+function InstagramFeed() {
+  const { data, loading, reload } = useLoad(() => rpc('instagram_status'))
+  const [token, setToken] = useState('')
+  const [run, busy] = useAction()
+  const refresh = async () => {
+    const { data: r, error } = await supabase.functions.invoke('instagram-feed', { body: { refresh: true } })
+    if (error) throw new Error('O serviço "instagram-feed" ainda não foi instalado no Supabase.')
+    return r
+  }
+  const connect = async () => {
+    await run(async () => {
+      await rpc('set_instagram_token', { p_token: token.trim() })
+      const r = await refresh()
+      if (!r?.username) throw new Error('A chave foi salva, mas o Instagram não aceitou. Confira se copiou a chave inteira e se a conta é profissional.')
+    }, 'Instagram conectado')
+    setToken(''); reload()
+  }
+  const disconnect = async () => {
+    if (!window.confirm('Desconectar o Instagram? Os posts somem do site.')) return
+    await run(() => rpc('set_instagram_token', { p_token: null }), 'Instagram desconectado')
+    reload()
+  }
+  const s = data || {}
+  return (
+    <div className="card stack">
+      <h2>Instagram no site</h2>
+      <p className="small muted" style={{ margin: 0 }}>
+        Os últimos posts do Instagram da loja (fotos e vídeos de clientes recebendo os carros) aparecem sozinhos na página inicial do site.
+        O site atualiza no máximo uma vez por hora.
+      </p>
+      {loading ? <Spinner /> : s.connected ? (
+        <>
+          <div className="alert-box success small">
+            Conectado{s.username ? <> como <b>@{s.username}</b></> : ''} · {s.posts || 0} post(s) no site{s.cached_at ? ` · atualizado em ${date(s.cached_at)}` : ''}
+            {s.last_error && <div style={{ marginTop: 4 }}>Último erro do Instagram: {s.last_error}</div>}
+          </div>
+          <div className="row">
+            <button onClick={() => run(refresh, 'Posts atualizados').then(reload).catch(() => {})} disabled={busy}>Atualizar agora</button>
+            <button className="btn-ghost btn-sm" onClick={disconnect} disabled={busy}>Desconectar</button>
+          </div>
+        </>
+      ) : (
+        <>
+          <ol className="small" style={{ margin: 0, paddingLeft: 18, lineHeight: 1.6 }}>
+            <li>A conta do Instagram precisa ser <b>profissional</b> (Empresa ou Criador de conteúdo).</li>
+            <li>Em <b>developers.facebook.com</b>, crie um app, adicione o produto <b>Instagram</b> e abra <b>“API setup with Instagram login”</b>.</li>
+            <li>Em <b>“Generate access tokens”</b>, adicione a conta @carkingautosales e clique em <b>Generate token</b>.</li>
+            <li>Copie a chave e cole aqui embaixo. Ela fica guardada em segurança e se renova sozinha.</li>
+          </ol>
+          <div className="row" style={{ flexWrap: 'nowrap' }}>
+            <input type="password" value={token} onChange={(e) => setToken(e.target.value)} placeholder="Cole a chave de acesso (access token)" autoComplete="off" />
+            <button className="btn-primary" onClick={connect} disabled={busy || token.trim().length < 40}>{busy ? 'Conectando…' : 'Conectar'}</button>
+          </div>
+        </>
       )}
     </div>
   )

@@ -4770,3 +4770,105 @@ select * from (
 where app.has_permission('dashboard', 'view');
 grant select on public.alerts to authenticated;
 
+-- >>> 20261111000020_sale_contracts.sql
+-- =============================================================================
+-- CARKING — 20 · Contratos de venda (à vista e parcelada)
+-- =============================================================================
+-- * companies: dados usados no contrato (licença de financiamento, multa por
+--   atraso e dias de carência, cláusulas extras). Editáveis em Configurações.
+-- * Multa por atraso padrão: 5% da parcela, após 15 dias de atraso
+--   (MA G.L. c.255B §11 limita a cobrança a parcelas em atraso há 15+ dias).
+-- * O contrato assinado é anexado à venda (attachments, entity_type 'sale').
+-- =============================================================================
+
+alter table public.companies
+  add column if not exists finance_license      text,
+  add column if not exists late_fee_pct         numeric(5,2) not null default 5 check (late_fee_pct >= 0 and late_fee_pct <= 25),
+  add column if not exists late_fee_grace_days  integer      not null default 15 check (late_fee_grace_days between 0 and 60),
+  add column if not exists contract_terms       text;
+
+-- Momento em que o contrato assinado foi anexado (para saber o que falta assinar)
+alter table public.sales
+  add column if not exists contract_signed_at timestamptz;
+
+create or replace function app.sale_contract_signed()
+returns trigger language plpgsql security definer
+set search_path = public, pg_temp
+as $$
+begin
+  if new.entity_type = 'sale' and new.kind = 'document' then
+    update public.sales set contract_signed_at = coalesce(contract_signed_at, now())
+     where id = new.entity_id and company_id = new.company_id;
+  end if;
+  return new;
+end $$;
+
+drop trigger if exists attachments_sale_contract_signed on public.attachments;
+create trigger attachments_sale_contract_signed after insert on public.attachments
+  for each row execute function app.sale_contract_signed();
+
+-- >>> 20261111000021_instagram_feed.sql
+-- =============================================================================
+-- CARKING — 21 · Posts do Instagram no site
+-- =============================================================================
+-- * A chave de acesso (token) do Instagram fica guardada aqui e NUNCA é lida
+--   pelo app nem pelo site: só a Edge Function "instagram-feed" (service role).
+-- * set_instagram_token(): o administrador cola a chave em Configurações.
+-- * instagram_status(): mostra se está conectado (sem expor a chave).
+-- * A função guarda os últimos posts em cache (atualiza no máximo 1x por hora).
+-- =============================================================================
+
+create table if not exists public.instagram_settings (
+  company_id        uuid primary key references public.companies(id) on delete cascade,
+  access_token      text,
+  token_updated_at  timestamptz,
+  username          text,
+  cached_posts      jsonb not null default '[]'::jsonb,
+  cached_at         timestamptz,
+  last_error        text,
+  updated_at        timestamptz not null default now()
+);
+alter table public.instagram_settings enable row level security;
+-- sem políticas: ninguém do app/site lê ou grava direto (só as funções abaixo e a Edge Function)
+revoke all on public.instagram_settings from anon, authenticated;
+
+create or replace function public.set_instagram_token(p_token text)
+returns void
+language plpgsql security definer
+set search_path = public, pg_temp
+as $$
+declare v_token text := nullif(trim(coalesce(p_token, '')), '');
+begin
+  if not app.has_permission('settings', 'edit') then
+    raise exception 'Sem permissão.';
+  end if;
+  if v_token is not null and (length(v_token) < 40 or v_token ~ '\s') then
+    raise exception 'Essa chave não parece válida. Copie a chave inteira gerada no Meta for Developers.';
+  end if;
+  insert into public.instagram_settings (company_id, access_token, token_updated_at, username, cached_posts, cached_at, last_error)
+  values (app.current_company_id(), v_token, case when v_token is null then null else now() end, null, '[]'::jsonb, null, null)
+  on conflict (company_id) do update
+     set access_token = excluded.access_token, token_updated_at = excluded.token_updated_at,
+         username = null, cached_posts = '[]'::jsonb, cached_at = null, last_error = null, updated_at = now();
+end $$;
+
+create or replace function public.instagram_status()
+returns jsonb
+language sql stable security definer
+set search_path = public, pg_temp
+as $$
+  select jsonb_build_object(
+    'connected', coalesce(s.access_token is not null, false),
+    'username', s.username,
+    'token_updated_at', s.token_updated_at,
+    'cached_at', s.cached_at,
+    'posts', coalesce(jsonb_array_length(s.cached_posts), 0),
+    'last_error', s.last_error)
+  from (select 1) x
+  left join public.instagram_settings s on s.company_id = app.current_company_id()
+  where app.has_permission('settings', 'view')
+$$;
+
+revoke execute on function public.set_instagram_token(text), public.instagram_status() from anon, public;
+grant execute on function public.set_instagram_token(text), public.instagram_status() to authenticated;
+

@@ -69,7 +69,7 @@ const csp = [
   "script-src 'self'",
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src 'self' https://fonts.gstatic.com",
-  `img-src 'self' data: https://${supabaseHost}`,
+  `img-src 'self' data: https://${supabaseHost} https://*.cdninstagram.com https://*.fbcdn.net`,
   `connect-src 'self' https://${supabaseHost}`,
   "object-src 'none'",
   "base-uri 'self'",

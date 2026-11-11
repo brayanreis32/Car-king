@@ -133,6 +133,15 @@ p { margin: 0 0 14px; }
 .empty.big { margin: 40px 0; }
 .empty.big h1 { font-size: 26px; color: var(--text); }
 
+/* ---------- Instagram ---------- */
+.ig-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.ig-post { position: relative; display: block; aspect-ratio: 1 / 1; border-radius: 10px; overflow: hidden; background: var(--bg-2); }
+.ig-post img { width: 100%; height: 100%; object-fit: cover; transition: transform .3s; }
+.ig-post:hover img { transform: scale(1.03); }
+.ig-play { position: absolute; top: 10px; right: 10px; width: 30px; height: 30px; border-radius: 50%; background: rgba(0,0,0,.6); display: flex; align-items: center; justify-content: center; }
+.ig-play svg { width: 16px; height: 16px; fill: #fff; }
+@media (max-width: 860px) { .ig-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; } }
+
 /* ---------- Por que nós ---------- */
 .why { display: grid; grid-template-columns: repeat(4, 1fr); gap: 28px; margin-top: 30px; }
 .why-item svg { width: 30px; height: 30px; fill: none; stroke: var(--gold); stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; margin-bottom: 10px; }

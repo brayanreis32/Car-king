@@ -582,5 +582,50 @@ select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000003
 set role authenticated;
 select pg_temp.eq('outra empresa não vê contatos do site', (select count(*) from website_leads), 0::bigint);
 
+-- ---------------------------------------------------------------------------
+-- Contrato de venda: multa padrão e marcação de contrato assinado
+-- ---------------------------------------------------------------------------
+reset role;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', false) \g /dev/null
+set role authenticated;
+select pg_temp.eq('multa padrão 5% após 15 dias',
+  (select late_fee_pct = 5 and late_fee_grace_days = 15 from companies where name = 'Car King Auto Sales'), true);
+insert into customers (full_name, phone) values ('Contrato Teste', '4075550177');
+select register_direct_purchase('1HGCV1F30LA000301', 'Honda', 'Fit', 2015, 'clean', 3000, p_expected_sale_price => 7000, p_stock_number => 'CK-CT1') \g /dev/null
+update vehicles set status = 'ready_for_sale' where stock_number = 'CK-CT1';
+select register_sale((select id from vehicles where stock_number = 'CK-CT1'), (select id from customers where full_name = 'Contrato Teste'), 7000,
+  p_down_payment => 1000, p_down_payment_account_id => (select id from financial_accounts limit 1), p_installments => 6, p_payment_method => 'installments', p_interest_rate_apr => 12) \g /dev/null
+select pg_temp.eq('contrato ainda não assinado',
+  (select contract_signed_at is null from sales where vehicle_id = (select id from vehicles where stock_number = 'CK-CT1')), true);
+insert into attachments (entity_type, entity_id, vehicle_id, kind, bucket, path, file_name)
+select 'sale', s.id, s.vehicle_id, 'receipt', 'documents', 'x/sale/' || s.id || '/recibo.jpg', 'recibo.jpg' from sales s join vehicles v on v.id = s.vehicle_id where v.stock_number = 'CK-CT1';
+select pg_temp.eq('recibo não marca contrato como assinado',
+  (select contract_signed_at is null from sales where vehicle_id = (select id from vehicles where stock_number = 'CK-CT1')), true);
+insert into attachments (entity_type, entity_id, vehicle_id, kind, bucket, path, file_name)
+select 'sale', s.id, s.vehicle_id, 'document', 'documents', 'x/sale/' || s.id || '/contrato.pdf', 'contrato.pdf' from sales s join vehicles v on v.id = s.vehicle_id where v.stock_number = 'CK-CT1';
+select pg_temp.eq('anexar contrato marca como assinado',
+  (select contract_signed_at is not null from sales where vehicle_id = (select id from vehicles where stock_number = 'CK-CT1')), true);
+
+-- ---------------------------------------------------------------------------
+-- Instagram: a chave nunca é exposta
+-- ---------------------------------------------------------------------------
+reset role;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', false) \g /dev/null
+set role authenticated;
+select pg_temp.must_fail('chave curta é recusada', $q$select public.set_instagram_token('abc')$q$);
+select public.set_instagram_token(repeat('IGAAtoken', 10)) \g /dev/null
+select pg_temp.eq('status mostra conectado sem a chave',
+  (select (s->>'connected')::boolean and not (s ? 'access_token') from (select public.instagram_status() s) x), true);
+select pg_temp.must_fail('app não lê a chave direto', $q$select access_token from instagram_settings$q$);
+reset role;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000002', false) \g /dev/null
+set role authenticated;
+select pg_temp.must_fail('vendedor não troca a chave', $q$select public.set_instagram_token(repeat('x', 60))$q$);
+reset role;
+select set_config('request.jwt.claim.sub', '', false) \g /dev/null
+set role anon;
+select pg_temp.must_fail('visitante não lê a chave', $q$select access_token from instagram_settings$q$);
+select pg_temp.must_fail('visitante não chama set_instagram_token', $q$select public.set_instagram_token(repeat('x', 60))$q$);
+
 reset role;
 \echo 'CARKING: todos os testes de regras de negócio passaram.'

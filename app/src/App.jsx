@@ -13,6 +13,7 @@ import Finance from './pages/Finance.jsx'
 import Employees from './pages/Employees.jsx'
 import Customers from './pages/Customers.jsx'
 import CustomerDetail from './pages/CustomerDetail.jsx'
+import Contract from './pages/Contract.jsx'
 
 const AppCtx = createContext(null)
 export const useApp = () => useContext(AppCtx)
@@ -113,6 +114,7 @@ function Shell() {
           <Route path="/veiculos/:id" element={<VehicleDetail />} />
           <Route path="/clientes" element={<Customers />} />
           <Route path="/clientes/:id" element={<CustomerDetail />} />
+          <Route path="/contrato/:saleId" element={<Contract />} />
           <Route path="/financeiro" element={<Finance />} />
           <Route path="/funcionarios" element={<Employees />} />
           <Route path="/configuracoes" element={<Settings />} />

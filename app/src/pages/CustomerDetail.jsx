@@ -11,7 +11,7 @@ const FREQ = { weekly: 'semanais', biweekly: 'quinzenais', monthly: 'mensais' }
 
 export default function CustomerDetail() {
   const { id } = useParams()
-  const { can } = useApp()
+  const { can, company } = useApp()
   const [editing, setEditing] = useState(false)
 
   const { data, error, loading, reload } = useLoad(async () => {
@@ -96,8 +96,8 @@ export default function CustomerDetail() {
             {sales.map((s) => {
               const parcelado = s.payment_method === 'installments'
               return (
-                <Link key={s.id} to={`/veiculos/${s.vehicles?.id}?tab=sale`} className="list-item" style={{ textDecoration: 'none', color: 'inherit' }}>
-                  <div className="grow" style={{ minWidth: 0 }}>
+                <div key={s.id} className="list-item" style={{ cursor: 'default' }}>
+                  <Link to={`/veiculos/${s.vehicles?.id}?tab=sale`} className="grow" style={{ minWidth: 0, textDecoration: 'none', color: 'inherit' }}>
                     <b>{vehicleName(s.vehicles)}</b>
                     <div className="muted small">
                       {s.vehicles?.stock_number && `${s.vehicles.stock_number} · `}VIN {s.vehicles?.vin} · vendido em {date(s.sale_date)}
@@ -107,9 +107,12 @@ export default function CustomerDetail() {
                         ? `entrada ${money(s.down_payment)} + ${s.installments} parcelas ${FREQ[s.installment_frequency] || ''} de ${money(s.installment_amount, true)}`
                         : label('payment_method', s.payment_method)}
                     </div>
+                  </Link>
+                  <div className="row" style={{ gap: 6, flexShrink: 0 }}>
+                    {s.contract_signed_at ? <Badge tone="success">Contrato assinado</Badge> : <Badge tone="warning">Falta contrato</Badge>}
+                    <Link to={`/contrato/${s.id}`} className="btn btn-sm">Contrato</Link>
                   </div>
-                  <span className="muted" style={{ flexShrink: 0, display: "flex" }}><Icon name="chevron" size={18} /></span>
-                </Link>
+                </div>
               )
             })}
           </div>
@@ -128,6 +131,9 @@ export default function CustomerDetail() {
               <tbody>
                 {recs.map((r) => {
                   const late = ['open', 'partial'].includes(r.status) && r.due_date && r.due_date < today()
+                  const daysLate = late ? Math.round((new Date(`${today()}T12:00:00`) - new Date(`${r.due_date}T12:00:00`)) / 86400000) : 0
+                  const lateFee = (r.installment_number || 0) > 0 && daysLate > Number(company.late_fee_grace_days ?? 15)
+                    ? Math.round(Number(r.balance) * Number(company.late_fee_pct ?? 5)) / 100 : 0
                   const sale = sales.find((s) => s.id === r.sale_id)
                   return (
                     <tr key={r.id}>
@@ -136,7 +142,8 @@ export default function CustomerDetail() {
                       <td className="num">{money(r.amount, true)}</td>
                       <td className="num">{money(r.received_amount, true)}</td>
                       <td className="num">{Number(r.balance) > 0 ? money(r.balance, true) : '—'}</td>
-                      <td><Badge tone={r.status === 'received' ? 'success' : late ? 'error' : r.status === 'partial' ? 'warning' : ''}>{r.status === 'received' ? 'Paga' : late ? 'Vencida' : r.status === 'partial' ? 'Parcial' : 'Em aberto'}</Badge></td>
+                      <td><Badge tone={r.status === 'received' ? 'success' : late ? 'error' : r.status === 'partial' ? 'warning' : ''}>{r.status === 'received' ? 'Paga' : late ? `Vencida há ${daysLate} dia(s)` : r.status === 'partial' ? 'Parcial' : 'Em aberto'}</Badge>
+                        {lateFee > 0 && <div className="small neg" style={{ marginTop: 2 }}>+ multa {money(lateFee, true)}</div>}</td>
                       <td>{(late || (r.due_date && r.due_date <= today())) && <ReminderButton receivable={r} customer={c.full_name} phone={c.phone} vehicle={sale ? vehicleName(sale.vehicles) : ''} />}</td>
                     </tr>
                   )
