@@ -14,23 +14,21 @@
 <!--#include header-->
     <main id="main">
       <section class="hero">
+        <div class="hero-media" aria-hidden="true"><img src="./hero.webp" alt="" width="1920" height="1080" fetchpriority="high" /></div>
         <div class="wrap hero-in">
           <div class="hero-text">
             <p class="eyebrow">Pre-owned cars{{inCity}}</p>
-            <h1>Good cars. Honest prices.<br />Financing that works for you.</h1>
+            <h1>Good cars.<br />Honest prices.<br /><span class="gold-text">Financing that works.</span></h1>
             <p class="hero-sub">Every vehicle is inspected and reconditioned before it goes on sale. Pay cash, bring your own lender, or finance with us.</p>
             <form class="search" action="./inventory.html" role="search">
               <label class="sr" for="q">Search inventory</label>
               <input id="q" name="q" type="search" placeholder="Search by make or model, e.g. Camry" autocomplete="off" />
-              <button class="btn btn-gold" type="submit">Search</button>
+              <button class="btn btn-dark" type="submit">Search</button>
             </form>
             <div class="hero-links">
               <a href="./inventory.html">View all inventory →</a>
               <a href="./financing.html">Get pre-approved →</a>
             </div>
-          </div>
-          <div class="hero-logo" aria-hidden="true">
-            <img src="./logo-dark-lg.webp" alt="" width="1100" height="317" />
           </div>
         </div>
       </section>
