@@ -8,7 +8,7 @@ export const BUSINESS = {
   // Enquanto não tiver domínio, deixe o endereço do GitHub Pages.
   siteUrl: 'https://autosalescarking.com',
 
-  phone: '',          // ex.: '(407) 555-0100'
+  phone: '(781) 731-2486',
   textPhone: '',      // celular para SMS/WhatsApp; vazio = usa o phone
   email: 'owner@autosalescarking.com',
 
@@ -16,7 +16,7 @@ export const BUSINESS = {
   city: '',           // ex.: 'Orlando'
   state: '',          // ex.: 'FL'
   zip: '',            // ex.: '32804'
-  byAppointment: false, // true = "Visitas com hora marcada" (sem loja aberta ao público)
+  byAppointment: true, // true = "Visits by appointment" (sem loja aberta ao público). Trocar para false quando tiver endereço.
 
   // Horário de atendimento. Deixe a lista vazia [] para não mostrar.
   hours: [
@@ -27,7 +27,7 @@ export const BUSINESS = {
 
   languages: ['English', 'Português', 'Español'],
 
-  instagram: '',      // link completo do perfil
+  instagram: 'https://www.instagram.com/carkingautosales/',
   facebook: '',
 }
 
