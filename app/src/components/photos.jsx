@@ -34,11 +34,11 @@ export async function signedUrls(rows, seconds = 3600) {
   return Object.fromEntries(data.map((d, i) => [rows[i].id, d.signedUrl]))
 }
 
-const loadPhotos = (vehicleId) =>
+export const loadPhotos = (vehicleId) =>
   q(supabase.from('attachments').select('*').eq('entity_type', 'vehicle').eq('entity_id', vehicleId).eq('kind', 'photo')
     .order('sort_order').order('created_at'))
 
-export function VehiclePhotos({ vehicle }) {
+export function VehiclePhotos({ vehicle, onUploaded }) {
   const { company, can } = useApp()
   const toast = useToast()
   const { data, loading, reload } = useLoad(async () => {
@@ -77,6 +77,7 @@ export function VehiclePhotos({ vehicle }) {
     setProgress(null)
     if (ok) toast(ok === 1 ? '1 foto enviada' : `${ok} fotos enviadas`)
     reload()
+    if (ok) onUploaded?.()
   }
 
   const makeCover = async (p) => {

@@ -399,3 +399,7 @@ tfoot td { font-weight: 600; border-bottom: 0; }
   .ct-tila { grid-template-columns: 1fr 1fr; }
   .ct-sched { grid-template-columns: 1fr 1fr; }
 }
+
+/* Prévia do post do Instagram */
+.ig-preview { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 6px; }
+.ig-preview img { width: 180px; height: 225px; object-fit: cover; border-radius: 6px; flex-shrink: 0; border: 1px solid var(--border); }

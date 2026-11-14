@@ -245,6 +245,7 @@ function InstagramFeed() {
         Os últimos posts do Instagram da loja (fotos e vídeos de clientes recebendo os carros) aparecem sozinhos na página inicial do site.
         O site atualiza no máximo uma vez por hora.
       </p>
+      <AutoPostToggle />
       {loading ? <Spinner /> : s.connected ? (
         <>
           <div className="alert-box success small">
@@ -271,5 +272,21 @@ function InstagramFeed() {
         </>
       )}
     </div>
+  )
+}
+
+function AutoPostToggle() {
+  const { company, reloadCompany } = useApp()
+  const [run, busy] = useAction()
+  const on = company.ig_auto_post !== false
+  const toggle = async () => {
+    await run(() => q(supabase.from('companies').update({ ig_auto_post: !on }).eq('id', company.id)), !on ? 'Post automático ligado' : 'Post automático desligado')
+    reloadCompany()
+  }
+  return (
+    <label className="check small" style={{ alignItems: 'flex-start' }}>
+      <input type="checkbox" checked={on} onChange={toggle} disabled={busy} />
+      <span><b>Postar carros automaticamente.</b> Quando o carro fica “Pronto para venda” ou “Anunciado” e tem fotos, o sistema publica o carrossel com as artes da Car King e a legenda (sem o preço). Uma vez por carro.</span>
+    </label>
   )
 }
