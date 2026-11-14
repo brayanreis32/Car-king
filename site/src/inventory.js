@@ -1,4 +1,4 @@
-import { bodyOf, carName, esc, getInventory, initChrome, loadError, renderCards } from './lib.js'
+import { carName, matchStyle, esc, getInventory, initChrome, loadError, renderCards } from './lib.js'
 
 initChrome('inventory')
 
@@ -23,7 +23,7 @@ function apply() {
   const rows = cars.filter((v) => {
     const text = `${carName(v)} ${v.trim || ''} ${v.color || ''}`.toLowerCase()
     if (terms.some((t) => !text.includes(t))) return false
-    if (f.type && bodyOf(v) !== f.type) return false
+    if (f.type && !matchStyle(v, f.type)) return false
     if (f.make && v.make !== f.make) return false
     if (f.max && !(Number(v.price) > 0 && Number(v.price) <= Number(f.max))) return false
     return true

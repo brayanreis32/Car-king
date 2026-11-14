@@ -1,13 +1,13 @@
-import { bodyOf, esc, getInventory, initChrome, loadError, renderCards, STYLES, supabase } from './lib.js'
+import { esc, matchStyle, getInventory, initChrome, loadError, renderCards, STYLES, supabase } from './lib.js'
 
 initChrome('home')
 
 // Browse by Style: sempre mostra os tipos principais (com a quantidade no estoque)
 const stylesEl = document.getElementById('styles')
 // tipos que já têm imagem em public/styles/<tipo>.png
-const STYLE_IMAGES = []
+const STYLE_IMAGES = ['suv', 'sedan', 'truck', 'electric', 'hybrid', 'hatchback']
 const drawStyles = (cars = []) => {
-  const count = (k) => cars.filter((v) => bodyOf(v) === k).length
+  const count = (k) => cars.filter((v) => matchStyle(v, k)).length
   stylesEl.classList.toggle('no-img', STYLE_IMAGES.length === 0)
   stylesEl.innerHTML = STYLES.map(([k, label]) => `<a class="style-tile" href="./inventory.html?type=${k}">
     ${STYLE_IMAGES.includes(k) ? `<img src="./styles/${k}.png" alt="" loading="lazy" width="340" height="148" />` : ''}

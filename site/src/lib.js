@@ -53,8 +53,15 @@ const CAR_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 17h14M
 
 // ---------- Tipos de carroceria ----------
 export const STYLES = [
-  ['suv', 'SUVs'], ['sedan', 'Sedans'], ['truck', 'Trucks'], ['hatchback', 'Hatchbacks'], ['van', 'Vans'], ['coupe', 'Coupes'],
+  ['suv', 'SUVs'], ['sedan', 'Cars'], ['truck', 'Trucks'], ['electric', 'Electric'], ['hybrid', 'Hybrid'], ['hatchback', 'Hatchback'],
 ]
+// O carro entra na categoria? (Electric/Hybrid pelo combustível; os outros pelo tipo)
+export function matchStyle(v, k) {
+  if (k === 'electric') return v.fuel_type === 'electric'
+  if (k === 'hybrid') return v.fuel_type === 'hybrid' || v.fuel_type === 'plug_in_hybrid'
+  if (k === 'sedan') return ['sedan', 'coupe', 'convertible'].includes(bodyOf(v))
+  return bodyOf(v) === k
+}
 // Silhuetas laterais simples (carroceria + vidros + rodas)
 const SIL = {
   sedan: ['M6 33l2-7c1-3 4-4 8-4.5l20-2.5 13-8c2-1 4-1.5 7-1.5h17c4 0 6 1 8 3l9 9 13 2c4 .7 6 2.5 6 6v4z', 'M40 19.5l11-7h11v7zM66 12.5h12c2 0 3 .5 4 1.5l5 5.5H66z'],
