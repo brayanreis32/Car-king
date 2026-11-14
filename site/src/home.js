@@ -8,8 +8,9 @@ const stylesEl = document.getElementById('styles')
 const STYLE_IMAGES = []
 const drawStyles = (cars = []) => {
   const count = (k) => cars.filter((v) => bodyOf(v) === k).length
+  stylesEl.classList.toggle('no-img', STYLE_IMAGES.length === 0)
   stylesEl.innerHTML = STYLES.map(([k, label]) => `<a class="style-tile" href="./inventory.html?type=${k}">
-    <img src="./styles/${k}.png" alt="" loading="lazy" width="340" height="148" onerror="this.style.visibility='hidden'" />
+    ${STYLE_IMAGES.includes(k) ? `<img src="./styles/${k}.png" alt="" loading="lazy" width="340" height="148" />` : ''}
     <span class="style-label">${label}${cars.length ? `<small>${count(k)} in stock</small>` : ''}</span></a>`).join('')
 }
 drawStyles()

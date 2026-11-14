@@ -101,6 +101,10 @@ svg { flex-shrink: 0; }
 
 /* ---------- Browse by Style ---------- */
 .styles { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 14px; }
+/* sem imagens: botões compactos */
+.styles.no-img .style-tile { flex-direction: row; justify-content: space-between; padding: 18px 20px; }
+.styles.no-img .style-label { flex-direction: row; align-items: baseline; gap: 8px; font-weight: 500; }
+.styles.no-img .style-tile::after { content: '›'; color: var(--gold); font-size: 22px; line-height: 1; }
 .style-tile { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 22px 12px 18px; background: #fff; border: 1px solid var(--line); border-radius: 10px; text-decoration: none; transition: border-color .15s, box-shadow .15s; }
 .style-tile:hover { border-color: var(--gold); box-shadow: 0 6px 18px rgba(0,0,0,.07); }
 .style-tile img { width: 100%; max-width: 170px; height: 74px; object-fit: contain; transition: transform .25s ease; }
