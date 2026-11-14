@@ -1,4 +1,4 @@
-import { bodyOf, esc, getInventory, initChrome, loadError, renderCards, STYLES, styleIcon, supabase } from './lib.js'
+import { bodyOf, esc, getInventory, initChrome, loadError, renderCards, STYLES, supabase } from './lib.js'
 
 initChrome('home')
 
@@ -7,7 +7,8 @@ const stylesEl = document.getElementById('styles')
 const drawStyles = (cars = []) => {
   const count = (k) => cars.filter((v) => bodyOf(v) === k).length
   stylesEl.innerHTML = STYLES.map(([k, label]) => `<a class="style-tile" href="./inventory.html?type=${k}">
-    ${styleIcon(k)}<span>${label}</span>${cars.length ? `<small>${count(k)} in stock</small>` : ''}</a>`).join('')
+    <img src="./styles/${k}.webp" alt="" loading="lazy" width="480" height="300" onerror="this.remove()" />
+    <span class="style-label">${label}${cars.length ? `<small>${count(k)} in stock</small>` : ''}</span></a>`).join('')
 }
 drawStyles()
 

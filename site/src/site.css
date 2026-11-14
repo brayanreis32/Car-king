@@ -101,15 +101,13 @@ svg { flex-shrink: 0; }
 
 /* ---------- Browse by Style ---------- */
 .styles { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 14px; }
-.style-tile { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 22px 12px 18px; background: #fff; border: 1px solid var(--line); border-radius: 8px; text-decoration: none; transition: border-color .15s, box-shadow .15s; }
-.style-tile:hover { border-color: var(--gold); box-shadow: 0 6px 16px rgba(0,0,0,.06); }
-.style-tile span { font-size: 16px; color: var(--text); }
-.style-tile small { font-size: 12.5px; color: var(--muted); }
-.sil { width: 120px; height: 42px; margin-bottom: 6px; }
-.sil-body { fill: #D9DADC; }
-.sil-glass { fill: #9EA3AA; }
-.sil-tire { fill: #2B2C2F; }
-.sil-rim { fill: #C9CBCE; }
+.style-tile { position: relative; display: block; aspect-ratio: 16 / 10; border-radius: 8px; overflow: hidden; background: #111; text-decoration: none; }
+.style-tile img { width: 100%; height: 100%; object-fit: cover; transition: transform .35s ease; }
+.style-tile::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0,0,0,0) 40%, rgba(0,0,0,.78) 100%); }
+.style-tile:hover img { transform: scale(1.05); }
+.style-label { position: absolute; left: 14px; right: 14px; bottom: 12px; z-index: 1; color: #fff; font-size: 18px; font-weight: 700; display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.style-label small { font-size: 13px; font-weight: 400; color: #E2E2DE; }
+.style-tile:hover .style-label { color: var(--gold); }
 
 /* ---------- Faixas de chamada ---------- */
 .ctas { display: grid; grid-template-columns: repeat(3, 1fr); }
@@ -321,7 +319,6 @@ svg { flex-shrink: 0; }
 @media (max-width: 560px) {
   .wrap { padding: 0 16px; }
   .styles { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
-  .sil { width: 100px; height: 35px; }
   .cards { grid-template-columns: 1fr; }
   .makes { grid-template-columns: 1fr 1fr; }
   .grid2, .specs { grid-template-columns: 1fr; }
