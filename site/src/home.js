@@ -4,6 +4,8 @@ initChrome('home')
 
 // Browse by Style: sempre mostra os tipos principais (com a quantidade no estoque)
 const stylesEl = document.getElementById('styles')
+// tipos que já têm imagem em public/styles/<tipo>.png
+const STYLE_IMAGES = []
 const drawStyles = (cars = []) => {
   const count = (k) => cars.filter((v) => bodyOf(v) === k).length
   stylesEl.innerHTML = STYLES.map(([k, label]) => `<a class="style-tile" href="./inventory.html?type=${k}">
