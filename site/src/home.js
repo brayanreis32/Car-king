@@ -7,7 +7,7 @@ const stylesEl = document.getElementById('styles')
 const drawStyles = (cars = []) => {
   const count = (k) => cars.filter((v) => bodyOf(v) === k).length
   stylesEl.innerHTML = STYLES.map(([k, label]) => `<a class="style-tile" href="./inventory.html?type=${k}">
-    <img src="./styles/${k}.webp" alt="" loading="lazy" width="480" height="300" onerror="this.remove()" />
+    <img src="./styles/${k}.png" alt="" loading="lazy" width="340" height="148" onerror="this.style.visibility='hidden'" />
     <span class="style-label">${label}${cars.length ? `<small>${count(k)} in stock</small>` : ''}</span></a>`).join('')
 }
 drawStyles()
