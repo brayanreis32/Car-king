@@ -240,13 +240,14 @@ export function InstagramCard({ vehicle }) {
 const AUTO_STATUS = ['ready_for_sale', 'listed']
 let running = new Set()
 export async function autoPublish(vehicle, company, toast) {
-  if (!company?.ig_auto_post || !AUTO_STATUS.includes(vehicle.status) || running.has(vehicle.id)) return
+  if (company?.ig_auto_post === false || !AUTO_STATUS.includes(vehicle.status) || running.has(vehicle.id)) return
   running.add(vehicle.id)
   try {
     const already = await q(supabase.from('instagram_posts').select('id').eq('vehicle_id', vehicle.id).eq('kind', 'for_sale').eq('status', 'published').limit(1))
-    if (already.length) return
+    if (already.length) { toast?.('Instagram: este carro já foi postado.'); return }
     const rows = await loadPhotos(vehicle.id)
     if (!rows.length) { toast?.('Instagram: o post sai sozinho assim que você adicionar as fotos de venda.'); return }
+    toast?.('Instagram: montando o post e publicando…')
     const phone = company.phone || '(781) 731-2486'
     const urls = await signedUrls(rows)
     const slides = await buildSlides(rows.map((r) => urls[r.id]), vehicle, phone)
