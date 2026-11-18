@@ -243,7 +243,7 @@ export async function autoPublish(vehicle, company, toast) {
   if (!company?.ig_auto_post || !AUTO_STATUS.includes(vehicle.status) || running.has(vehicle.id)) return
   running.add(vehicle.id)
   try {
-    const already = await q(supabase.from('instagram_posts').select('id').eq('vehicle_id', vehicle.id).eq('status', 'published').limit(1))
+    const already = await q(supabase.from('instagram_posts').select('id').eq('vehicle_id', vehicle.id).eq('kind', 'for_sale').eq('status', 'published').limit(1))
     if (already.length) return
     const rows = await loadPhotos(vehicle.id)
     if (!rows.length) { toast?.('Instagram: o post sai sozinho assim que você adicionar as fotos de venda.'); return }
@@ -258,9 +258,137 @@ export async function autoPublish(vehicle, company, toast) {
       if (error) throw new Error(error.message)
       paths.push(path)
     }
-    const r = await callFunction('instagram-publish', { vehicle_id: vehicle.id, paths, caption, auto: true })
+    const r = await callFunction('instagram-publish', { vehicle_id: vehicle.id, paths, caption, auto: true, kind: 'for_sale' })
     if (!r.skipped) toast?.('Postado no Instagram automaticamente!')
   } catch (e) {
     toast?.(`Instagram: ${e.message}`, 'error')
   } finally { running.delete(vehicle.id) }
+}
+
+// ---------- Post da entrega (carro vendido) ----------
+const SOLD_OPENERS = [
+  (n, car) => `🔑 SOLD! Congratulations${n ? `, ${n},` : ''} on your ${car}!`,
+  (n, car) => `🎉 Another happy customer!${n ? ` Congrats ${n}` : ' Congrats'} on the ${car}!`,
+  (n, car) => `👑 Keys delivered!${n ? ` Enjoy your new ${car}, ${n}!` : ` Enjoy your new ${car}!`}`,
+]
+export function buildSoldCaption(v, firstName, phone, variant = 0) {
+  const car = carTitle(v)
+  return [
+    SOLD_OPENERS[variant % SOLD_OPENERS.length](firstName, car),
+    '',
+    'Thank you for choosing Car King Auto Sales. 🙏',
+    '',
+    '🚗 Your next car is waiting for you.',
+    '💰 In-house financing available: weekly, bi-weekly or monthly payments',
+    `📲 Call or WhatsApp${phone ? ` ${phone}` : ''}`,
+    `🌐 ${SITE}`,
+    '',
+    '🇧🇷 Falamos Português · 🇪🇸 Hablamos Español',
+    '',
+    ['#carkingautosales', '#sold', '#happycustomer', '#newcar', '#usedcars', '#massachusetts', '#buyherepayhere', tag(v.make), tag(`${v.make}${v.model}`), '#carrosusadoseua'].join(' '),
+  ].join('\n')
+}
+
+function soldSlide(photo, logo, v, firstName, phone) {
+  const c = canvas(), ctx = c.getContext('2d')
+  cover(ctx, photo, 0, 0, W, H)
+  let g = ctx.createLinearGradient(0, 0, 0, 230); g.addColorStop(0, 'rgba(0,0,0,.75)'); g.addColorStop(1, 'rgba(0,0,0,0)')
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, 230)
+  g = ctx.createLinearGradient(0, 860, 0, H); g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(.55, 'rgba(0,0,0,.85)'); g.addColorStop(1, 'rgba(0,0,0,.95)')
+  ctx.fillStyle = g; ctx.fillRect(0, 860, W, H - 860)
+  ctx.globalCompositeOperation = 'lighten'  // fundo preto da logo some sobre a foto
+  logoAt(ctx, logo, 330, 30, 420)
+  ctx.globalCompositeOperation = 'source-over'
+  ctx.textAlign = 'center'
+  // selo SOLD
+  ctx.fillStyle = GOLD; ctx.beginPath(); ctx.roundRect(W / 2 - 150, 1000, 300, 76, 38); ctx.fill()
+  ctx.fillStyle = '#111'; ctx.font = '800 46px Inter, Arial, sans-serif'; ctx.fillText('SOLD ✓', W / 2, 1054)
+  ctx.fillStyle = '#fff'; const line = firstName ? `Congratulations, ${firstName}!` : 'Another happy customer!'
+  fitText(ctx, line, 980, 64); ctx.fillText(line, W / 2, 1160)
+  ctx.fillStyle = '#D9D9D5'; ctx.font = '500 38px Inter, Arial, sans-serif'
+  ctx.fillText(carTitle(v), W / 2, 1222)
+  ctx.fillStyle = '#9A9A96'; ctx.font = '500 28px Inter, Arial, sans-serif'
+  ctx.fillText(`${SITE}  ·  ${phone || ''}`, W / 2, 1300)
+  return c
+}
+
+export async function buildSoldSlides(photoUrl, v, firstName, phone) {
+  await document.fonts?.load?.('800 40px Inter').catch?.(() => null)
+  const logo = await loadImg('./logo-dark-lg.webp')
+  const photo = await loadImg(photoUrl)
+  return [soldSlide(photo, logo, v, firstName, phone), ctaSlide(logo, phone)]
+}
+
+// Envia a foto da entrega, monta as artes e publica (uma vez por venda)
+export async function publishSold({ vehicle, company, file, firstName, toast }) {
+  const phone = company.phone || '(781) 731-2486'
+  const url = URL.createObjectURL(file)
+  try {
+    const slides = await buildSoldSlides(url, vehicle, firstName, phone)
+    const caption = buildSoldCaption(vehicle, firstName, phone, Math.floor(Math.random() * SOLD_OPENERS.length))
+    const stamp = Date.now(), paths = []
+    for (let i = 0; i < slides.length; i++) {
+      const path = `${company.id}/instagram/${vehicle.id}/sold-${stamp}-${i + 1}.jpg`
+      const { error } = await supabase.storage.from('vehicle-media').upload(path, await toBlob(slides[i]), { contentType: 'image/jpeg' })
+      if (error) throw new Error(error.message)
+      paths.push(path)
+    }
+    if (company.ig_auto_post === false) {
+      await q(supabase.from('instagram_posts').insert({ vehicle_id: vehicle.id, kind: 'sold', caption, media_paths: paths, status: 'downloaded' }))
+      toast?.('Arte da entrega pronta. Post automático está desligado em Configurações.')
+      return { slides, caption, posted: false }
+    }
+    const r = await callFunction('instagram-publish', { vehicle_id: vehicle.id, paths, caption, auto: true, kind: 'sold' })
+    if (r.skipped) toast?.('Esta entrega já foi postada no Instagram.')
+    else toast?.('Foto da entrega postada no Instagram!')
+    return { slides, caption, posted: !r.skipped, permalink: r.permalink }
+  } finally { URL.revokeObjectURL(url) }
+}
+
+// Quadro na aba Vender (depois da venda)
+export function DeliveryPost({ vehicle, customerName }) {
+  const { company, can } = useApp()
+  const toast = useToast()
+  const [posts, setPosts] = useState(null)
+  const [showName, setShowName] = useState(true)
+  const [busy, setBusy] = useState(false)
+  const [preview, setPreview] = useState(null)
+  const reload = () => q(supabase.from('instagram_posts').select('*').eq('vehicle_id', vehicle.id).eq('kind', 'sold').order('created_at', { ascending: false })).then(setPosts).catch(() => setPosts([]))
+  useEffect(() => { reload() }, [vehicle.id]) // eslint-disable-line react-hooks/exhaustive-deps
+  if (!can('vehicles', 'edit') || posts === null) return null
+  const done = posts.find((p) => p.status === 'published')
+  const firstName = (customerName || '').trim().split(/\s+/)[0] || ''
+  const onFile = async (e) => {
+    const file = e.target.files?.[0]; e.target.value = ''
+    if (!file) return
+    setBusy(true)
+    try {
+      const r = await publishSold({ vehicle, company, file, firstName: showName ? firstName : '', toast })
+      setPreview(r.slides[0].toDataURL('image/jpeg', 0.8))
+      reload()
+    } catch (err) { toast(`Instagram: ${err.message}`, 'error') } finally { setBusy(false) }
+  }
+  return (
+    <div className="card stack">
+      <div className="row between">
+        <div>
+          <h2 style={{ margin: 0 }}>Foto da entrega</h2>
+          <div className="muted small">
+            {done ? <>Postada no Instagram em {date(done.created_at)}{done.permalink && <> · <a href={done.permalink} target="_blank" rel="noreferrer">ver post</a></>}</>
+              : 'Tire uma foto do cliente segurando a chave. O sistema monta a arte “SOLD” e posta sozinho no Instagram.'}
+          </div>
+        </div>
+        {done ? <Badge tone="success">Postada</Badge> : (
+          <label className="btn btn-primary btn-sm" style={{ cursor: busy ? 'wait' : 'pointer' }}>
+            <Icon name="plus" /> {busy ? 'Postando…' : 'Foto da entrega'}
+            <input type="file" accept="image/*" capture="environment" hidden disabled={busy} onChange={onFile} />
+          </label>
+        )}
+      </div>
+      {!done && firstName && (
+        <label className="check small"><input type="checkbox" checked={showName} onChange={(e) => setShowName(e.target.checked)} /> Cliente autorizou aparecer o primeiro nome ({firstName}) no post</label>
+      )}
+      {preview && <img src={preview} alt="Arte da entrega" style={{ width: 220, borderRadius: 8, border: '1px solid var(--border)' }} />}
+    </div>
+  )
 }

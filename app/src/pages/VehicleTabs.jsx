@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { date, label, money, options, PART_STATUS_TONE, q, rpc, supabase, toNum, today, vehicleName } from '../lib.js'
 import { Badge, Empty, ErrorBox, Field, Icon, Kpi, Modal, MoneyInput, Select, Spinner, useAction, useLoad } from '../components/ui.jsx'
 import { useApp } from '../App.jsx'
+import { DeliveryPost } from '../components/instagramPost.jsx'
 import { ReminderButton } from '../components/reminder.jsx'
 import { Attachments, AttachmentRow, AttachmentsButton, FilePick, uploadAll, useAttachmentCounts } from '../components/attachments.jsx'
 
@@ -611,6 +612,7 @@ export function Sale({ vehicle, pa, onChange }) {
             {sale.notes && <div><span className="muted">Obs.</span><span>{sale.notes}</span></div>}
           </div>
         </div>
+        <DeliveryPost vehicle={vehicle} customerName={sale.customers?.full_name} />
         <div className="card row between">
           <div>
             <h2 style={{ margin: 0 }}>Contrato</h2>

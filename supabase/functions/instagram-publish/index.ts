@@ -4,7 +4,8 @@
 // única) com a legenda. Só para usuários logados com permissão de editar
 // veículos. A chave do Instagram fica no banco e nunca vai para o navegador.
 //
-// POST { vehicle_id, paths: ["empresa/instagram/.../1.jpg", ...], caption, auto }
+// POST { vehicle_id, paths: ["empresa/instagram/.../1.jpg", ...], caption, auto, kind }
+// kind: 'for_sale' (carro à venda) ou 'sold' (entrega ao cliente).
 // auto: true = publicação automática; não posta de novo um carro já postado.
 //
 // Ao publicar: deixe "Verify JWT with legacy secret" DESLIGADO.
@@ -71,7 +72,9 @@ Deno.serve(async (req) => {
     const { data: { user: me } } = await user.auth.getUser(token)
     if (!me) return json({ error: 'Faça login novamente.' }, 401)
 
-    const { vehicle_id, paths, caption, auto } = await req.json()
+    const body = await req.json()
+    const { vehicle_id, paths, caption, auto } = body
+    const kind = body.kind === 'sold' ? 'sold' : 'for_sale'
     if (!Array.isArray(paths) || !paths.length || paths.length > 10) return json({ error: 'Envie de 1 a 10 imagens.' }, 400)
     if (String(caption || '').length > 2200) return json({ error: 'Legenda passa de 2.200 caracteres.' }, 400)
 
@@ -90,7 +93,7 @@ Deno.serve(async (req) => {
 
     if (auto && vehicle_id) {
       const { count } = await admin.from('instagram_posts').select('id', { count: 'exact', head: true })
-        .eq('vehicle_id', vehicle_id).eq('status', 'published')
+        .eq('vehicle_id', vehicle_id).eq('kind', kind).eq('status', 'published')
       if ((count || 0) > 0) return json({ ok: true, skipped: 'already_posted' })
     }
 
@@ -120,7 +123,7 @@ Deno.serve(async (req) => {
     let permalink = null
     try { permalink = (await ig(pub.id, { fields: 'permalink', access_token: at }, 'GET')).permalink } catch { /* opcional */ }
 
-    await admin.from('instagram_posts').insert({ company_id: companyId, vehicle_id: vehicle_id || null, caption, media_paths: paths, status: 'published', ig_media_id: pub.id, permalink, created_by: me.id })
+    await admin.from('instagram_posts').insert({ company_id: companyId, vehicle_id: vehicle_id || null, kind, caption, media_paths: paths, status: 'published', ig_media_id: pub.id, permalink, created_by: me.id })
     return json({ ok: true, permalink, username: acct.username })
   } catch (e) {
     return json({ error: String(e.message || e) }, 500)
