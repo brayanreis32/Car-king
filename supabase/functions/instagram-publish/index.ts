@@ -16,7 +16,31 @@ const cors = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 }
 const json = (body, status = 200) => new Response(JSON.stringify(body), { status, headers: { ...cors, 'Content-Type': 'application/json' } })
-const GRAPH = 'https://graph.instagram.com/v23.0'
+let GRAPH = 'https://graph.instagram.com/v23.0'
+
+// Descobre a conta do Instagram conforme o tipo de chave:
+//  - IGAA…  (login do Instagram)  -> graph.instagram.com
+//  - EAA…   (login unificado / token do usuário do sistema) -> graph.facebook.com
+async function getJ(u) { const j = await (await fetch(u)).json(); if (j.error) throw new Error(j.error.error_user_msg || j.error.message || 'Erro do Instagram'); return j }
+async function igAccount(token, savedId) {
+  const t = encodeURIComponent(token)
+  if (/^IG/.test(token)) {
+    const base = 'https://graph.instagram.com/v23.0'
+    const me = await getJ(`${base}/me?fields=user_id,username&access_token=${t}`)
+    return { base, id: me.user_id || me.id, username: me.username, kind: 'ig' }
+  }
+  const base = 'https://graph.facebook.com/v23.0'
+  let id = savedId
+  if (!id) {
+    try {
+      const pages = await getJ(`${base}/me/accounts?fields=instagram_business_account&access_token=${t}`)
+      id = (pages.data || []).find((p) => p.instagram_business_account)?.instagram_business_account?.id
+    } catch { /* token de usuário do sistema pode não listar páginas */ }
+  }
+  if (!id) throw new Error('Não encontrei a conta do Instagram. Informe o "ID da conta do Instagram" em Configurações → Instagram no site.')
+  const info = await getJ(`${base}/${id}?fields=username&access_token=${t}`)
+  return { base, id, username: info.username, kind: 'fb' }
+}
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
 async function ig(path, params, method = 'POST') {
@@ -60,7 +84,7 @@ Deno.serve(async (req) => {
     if (!companyId || paths.some((p) => !String(p).startsWith(`${companyId}/instagram/`))) return json({ error: 'Imagens inválidas.' }, 400)
 
     const admin = createClient(url, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'), { auth: { persistSession: false } })
-    const { data: cfg } = await admin.from('instagram_settings').select('access_token').eq('company_id', companyId).maybeSingle()
+    const { data: cfg } = await admin.from('instagram_settings').select('access_token, ig_user_id').eq('company_id', companyId).maybeSingle()
     if (!cfg?.access_token) return json({ error: 'Conecte o Instagram em Configurações → Instagram no site.' }, 400)
     const at = cfg.access_token
 
@@ -75,8 +99,9 @@ Deno.serve(async (req) => {
     if (sErr) throw new Error(sErr.message)
     const urls = signed.map((s) => s.signedUrl)
 
-    const acct = await ig('me', { fields: 'user_id,username', access_token: at }, 'GET')
-    const igId = acct.user_id || acct.id
+    const acct = await igAccount(at, cfg.ig_user_id)
+    GRAPH = acct.base
+    const igId = acct.id
     let creationId
     if (urls.length === 1) {
       creationId = (await ig(`${igId}/media`, { image_url: urls[0], caption: caption || '', access_token: at })).id

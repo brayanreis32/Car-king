@@ -218,6 +218,7 @@ function CompanyContract({ company, canEdit, onSaved }) {
 function InstagramFeed() {
   const { data, loading, reload } = useLoad(() => rpc('instagram_status'))
   const [token, setToken] = useState('')
+  const [igId, setIgId] = useState('')
   const [run, busy] = useAction()
   const refresh = async () => {
     const { data: r, error } = await supabase.functions.invoke('instagram-feed', { body: { refresh: true } })
@@ -226,11 +227,11 @@ function InstagramFeed() {
   }
   const connect = async () => {
     await run(async () => {
-      await rpc('set_instagram_token', { p_token: token.trim() })
+      await rpc('set_instagram_token', { p_token: token.trim(), p_ig_user_id: igId.trim() || null })
       const r = await refresh()
-      if (!r?.username) throw new Error('A chave foi salva, mas o Instagram não aceitou. Confira se copiou a chave inteira e se a conta é profissional.')
+      if (!r?.username) throw new Error(r?.error || 'A chave foi salva, mas o Instagram não aceitou. Confira se copiou a chave inteira e, se for a chave do login unificado (EAA…), informe o ID da conta do Instagram.')
     }, 'Instagram conectado')
-    setToken(''); reload()
+    setToken(''); setIgId(''); reload()
   }
   const disconnect = async () => {
     if (!window.confirm('Desconectar o Instagram? Os posts somem do site.')) return
@@ -260,13 +261,13 @@ function InstagramFeed() {
       ) : (
         <>
           <ol className="small" style={{ margin: 0, paddingLeft: 18, lineHeight: 1.6 }}>
-            <li>A conta do Instagram precisa ser <b>profissional</b> (Empresa ou Criador de conteúdo).</li>
-            <li>Em <b>developers.facebook.com</b>, crie um app, adicione o produto <b>Instagram</b> e abra <b>“API setup with Instagram login”</b>.</li>
-            <li>Em <b>“Generate access tokens”</b>, adicione a conta @carkingautosales e clique em <b>Generate token</b>.</li>
-            <li>Copie a chave e cole aqui embaixo. Ela fica guardada em segurança e se renova sozinha.</li>
+            <li>A conta do Instagram precisa ser <b>profissional</b> (Empresa).</li>
+            <li>Em <b>developers.facebook.com</b>, no app da Car King, gere a <b>chave de acesso</b> (token) da conta @carkingautosales.</li>
+            <li>Cole a chave aqui. Se a chave começar com <b>EAA</b> (login unificado), informe também o <b>ID da conta do Instagram</b> que aparece na Meta.</li>
           </ol>
           <div className="row" style={{ flexWrap: 'nowrap' }}>
             <input type="password" value={token} onChange={(e) => setToken(e.target.value)} placeholder="Cole a chave de acesso (access token)" autoComplete="off" />
+            <input value={igId} onChange={(e) => setIgId(e.target.value)} placeholder="ID da conta do Instagram (se pedir)" inputMode="numeric" style={{ maxWidth: 230 }} />
             <button className="btn-primary" onClick={connect} disabled={busy || token.trim().length < 40}>{busy ? 'Conectando…' : 'Conectar'}</button>
           </div>
         </>

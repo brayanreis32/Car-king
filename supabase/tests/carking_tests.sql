@@ -613,7 +613,7 @@ reset role;
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', false) \g /dev/null
 set role authenticated;
 select pg_temp.must_fail('chave curta é recusada', $q$select public.set_instagram_token('abc')$q$);
-select public.set_instagram_token(repeat('IGAAtoken', 10)) \g /dev/null
+select public.set_instagram_token(repeat('IGAAtoken', 10), null) \g /dev/null
 select pg_temp.eq('status mostra conectado sem a chave',
   (select (s->>'connected')::boolean and not (s ? 'access_token') from (select public.instagram_status() s) x), true);
 select pg_temp.must_fail('app não lê a chave direto', $q$select access_token from instagram_settings$q$);

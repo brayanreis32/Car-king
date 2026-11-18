@@ -22,6 +22,30 @@ const CACHE_MS = 60 * 60 * 1000          // 1 hora
 const REFRESH_TOKEN_MS = 20 * 24 * 3600e3 // renova a chave a cada 20 dias (ela vale 60)
 const GRAPH = 'https://graph.instagram.com'
 
+// Descobre a conta do Instagram conforme o tipo de chave:
+//  - IGAA…  (login do Instagram)  -> graph.instagram.com
+//  - EAA…   (login unificado / token do usuário do sistema) -> graph.facebook.com
+async function getJ(u) { const j = await (await fetch(u)).json(); if (j.error) throw new Error(j.error.error_user_msg || j.error.message || 'Erro do Instagram'); return j }
+async function igAccount(token, savedId) {
+  const t = encodeURIComponent(token)
+  if (/^IG/.test(token)) {
+    const base = 'https://graph.instagram.com/v23.0'
+    const me = await getJ(`${base}/me?fields=user_id,username&access_token=${t}`)
+    return { base, id: me.user_id || me.id, username: me.username, kind: 'ig' }
+  }
+  const base = 'https://graph.facebook.com/v23.0'
+  let id = savedId
+  if (!id) {
+    try {
+      const pages = await getJ(`${base}/me/accounts?fields=instagram_business_account&access_token=${t}`)
+      id = (pages.data || []).find((p) => p.instagram_business_account)?.instagram_business_account?.id
+    } catch { /* token de usuário do sistema pode não listar páginas */ }
+  }
+  if (!id) throw new Error('Não encontrei a conta do Instagram. Informe o "ID da conta do Instagram" em Configurações → Instagram no site.')
+  const info = await getJ(`${base}/${id}?fields=username&access_token=${t}`)
+  return { base, id, username: info.username, kind: 'fb' }
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors })
   const db = createClient(Deno.env.get('SUPABASE_URL'), Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'), { auth: { persistSession: false } })
@@ -41,15 +65,16 @@ Deno.serve(async (req) => {
     let token = cfg.access_token
     const patch = {}
     try {
-      // renova a chave de longa duração antes de vencer
-      if (!cfg.token_updated_at || Date.now() - new Date(cfg.token_updated_at).getTime() > REFRESH_TOKEN_MS) {
+      // renova a chave do login do Instagram antes de vencer (a do login unificado não expira)
+      if (/^IG/.test(token) && (!cfg.token_updated_at || Date.now() - new Date(cfg.token_updated_at).getTime() > REFRESH_TOKEN_MS)) {
         const r = await fetch(`${GRAPH}/refresh_access_token?grant_type=ig_refresh_token&access_token=${encodeURIComponent(token)}`)
         if (r.ok) { const j = await r.json(); if (j.access_token) { token = j.access_token; patch.access_token = token; patch.token_updated_at = new Date().toISOString() } }
       }
-      const me = await fetch(`${GRAPH}/me?fields=username&access_token=${encodeURIComponent(token)}`).then((r) => r.json())
-      if (me.error) throw new Error(me.error.message)
+      const acct = await igAccount(token, cfg.ig_user_id)
+      const me = { username: acct.username }
+      if (!cfg.ig_user_id && acct.id) patch.ig_user_id = acct.id
       const fields = 'id,caption,media_type,media_url,thumbnail_url,permalink,timestamp'
-      const media = await fetch(`${GRAPH}/me/media?fields=${fields}&limit=12&access_token=${encodeURIComponent(token)}`).then((r) => r.json())
+      const media = await fetch(`${acct.base}/${acct.id}/media?fields=${fields}&limit=12&access_token=${encodeURIComponent(token)}`).then((r) => r.json())
       if (media.error) throw new Error(media.error.message)
       const posts = (media.data || []).map((m) => ({
         id: m.id, type: m.media_type, permalink: m.permalink, timestamp: m.timestamp,
