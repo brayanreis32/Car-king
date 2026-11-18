@@ -287,7 +287,7 @@ function AutoPostToggle() {
   return (
     <label className="check small" style={{ alignItems: 'flex-start' }}>
       <input type="checkbox" checked={on} onChange={toggle} disabled={busy} />
-      <span><b>Postar carros automaticamente.</b> Quando o carro fica “Pronto para venda” ou “Anunciado” e tem fotos, o sistema publica o carrossel com as artes da Car King e a legenda (sem o preço). Uma vez por carro.</span>
+      <span><b>Postar carros automaticamente.</b> Quando o carro fica “Pronto para venda” ou “Anunciado” e tem fotos, o servidor publica sozinho em até 5 minutos o carrossel com as artes da Car King e a legenda (sem o preço), mesmo com o sistema fechado. Uma vez por carro.</span>
     </label>
   )
 }

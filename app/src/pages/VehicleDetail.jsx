@@ -4,7 +4,7 @@ import { date, label, money, options, pct, q, signedMoney, supabase, toNum, VEHI
 import { Badge, ErrorBox, Field, Icon, Kpi, Modal, MoneyInput, Select, Spinner, Tabs, useAction, useLoad, useToast } from '../components/ui.jsx'
 import { Documents, Expenses, Labor, Parts, Sale, Transport } from './VehicleTabs.jsx'
 import { AuctionPhotos, VehiclePhotos } from '../components/photos.jsx'
-import { autoPublish, InstagramCard } from '../components/instagramPost.jsx'
+import { InstagramCard } from '../components/instagramPost.jsx'
 import { useApp } from '../App.jsx'
 import { DeleteRecordButton } from '../components/deleteRecord.jsx'
 
@@ -39,7 +39,6 @@ export default function VehicleDetail() {
   const setStatus = async (status) => {
     await run(() => q(supabase.from('vehicles').update({ status }).eq('id', id)), 'Status atualizado')
     reload()
-    autoPublish({ ...data.v, status }, company, toast)
   }
 
   const overruns = (budget || []).filter((b) => b.alert_level !== 'ok')
@@ -79,7 +78,7 @@ export default function VehicleDetail() {
 
       {tab === 'summary' && <Summary v={v} pa={pa} onEditPrices={() => setEditingPrices(true)} />}
       {tab === 'photos' && <div className="stack">
-        <VehiclePhotos vehicle={v} onUploaded={() => autoPublish(v, company, toast)} />
+        <VehiclePhotos vehicle={v} />
         <InstagramCard vehicle={v} />
         {v.opportunity_id && <AuctionPhotos opportunityId={v.opportunity_id} vehicle={v} title="Fotos do leilão (como foi comprado)" canPull={false} />}
       </div>}

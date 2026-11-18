@@ -221,7 +221,10 @@ export function InstagramCard({ vehicle }) {
         <h2 style={{ margin: 0 }}>Instagram</h2>
         <div className="muted small">
           {published ? <>Postado em {date(published.created_at)}{published.permalink && <> · <a href={published.permalink} target="_blank" rel="noreferrer">ver post</a></>}</>
-            : 'Carrossel com as artes da Car King e legenda pronta, sem o preço.'}
+            : publishing ? 'Publicando no Instagram agora…'
+            : lastFail ? <span className="neg">Não foi possível postar: {lastFail.error}. O sistema tenta de novo em 1 hora.</span>
+            : ['ready_for_sale', 'listed'].includes(vehicle.status) ? 'Vai para o Instagram sozinho em até 5 minutos (precisa ter fotos de venda).'
+            : 'Quando o carro ficar “Pronto para venda” ou “Anunciado”, o post sai sozinho.'}
         </div>
       </div>
       <div className="row">

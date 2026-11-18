@@ -641,5 +641,28 @@ set role anon;
 select pg_temp.eq('site recebe tipo e doc fee',
   (select e->>'body_style' = 'sedan' and (e->>'doc_fee')::numeric = 499 from jsonb_array_elements(public.public_inventory()) e where e->>'stock_number' = 'CK-SITE1'), true);
 
+-- ---------------------------------------------------------------------------
+-- Instagram automático pelo servidor
+-- ---------------------------------------------------------------------------
+reset role;
+update companies set ig_auto_post = true where name = 'Car King Auto Sales';
+select pg_temp.eq('candidato: carro à venda com foto',
+  (select count(*) from public.instagram_autopost_candidates(0, 10) c join vehicles v on v.id = c.vehicle_id where v.stock_number = 'CK-SITE1'), 1::bigint);
+select pg_temp.eq('candidato traz fotos e chave',
+  (select array_length(photo_paths, 1) = 1 and access_token is not null from public.instagram_autopost_candidates(0, 10) c join vehicles v on v.id = c.vehicle_id where v.stock_number = 'CK-SITE1'), true);
+insert into instagram_posts (company_id, vehicle_id, kind, status)
+select company_id, id, 'for_sale', 'publishing' from vehicles where stock_number = 'CK-SITE1';
+select pg_temp.must_fail('trava impede segundo post simultâneo',
+  $q$insert into instagram_posts (company_id, vehicle_id, kind, status) select company_id, id, 'for_sale', 'publishing' from vehicles where stock_number = 'CK-SITE1'$q$);
+update instagram_posts set status = 'published' where status = 'publishing';
+select pg_temp.eq('carro já postado não volta a ser candidato',
+  (select count(*) from public.instagram_autopost_candidates(0, 10) c join vehicles v on v.id = c.vehicle_id where v.stock_number = 'CK-SITE1'), 0::bigint);
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', false) \g /dev/null
+set role authenticated;
+select pg_temp.must_fail('usuário do app não lista candidatos (expõe a chave)', $q$select * from public.instagram_autopost_candidates(0, 10)$q$);
+reset role;
+set role anon;
+select pg_temp.must_fail('visitante não lista candidatos', $q$select * from public.instagram_autopost_candidates(0, 10)$q$);
+
 reset role;
 \echo 'CARKING: todos os testes de regras de negócio passaram.'
