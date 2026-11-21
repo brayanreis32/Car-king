@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useState } from 'react'
+import { Component, createContext, useCallback, useContext, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 
 // ---------- Ícones (traço simples, sem dependências) ----------
@@ -165,4 +165,25 @@ export function useAction() {
     }
   }
   return [run, busy]
+}
+
+// Se uma tela der erro, mostra aviso com botão em vez de deixar a página branca
+export class ErrorBoundary extends Component {
+  constructor(props) { super(props); this.state = { error: null } }
+  static getDerivedStateFromError(error) { return { error } }
+  componentDidCatch(error) { console.error(error) }
+  render() {
+    if (!this.state.error) return this.props.children
+    return (
+      <div className="card stack" style={{ margin: 16 }}>
+        <h2 style={{ margin: 0 }}>Algo deu errado nesta tela</h2>
+        <p className="muted small" style={{ margin: 0 }}>Recarregue a página. Se continuar, mande um print desta mensagem.</p>
+        <code className="small" style={{ whiteSpace: 'pre-wrap', color: 'var(--error)' }}>{String(this.state.error?.message || this.state.error)}</code>
+        <div className="row">
+          <button className="btn-primary" onClick={() => window.location.reload()}>Recarregar</button>
+          <button onClick={() => { this.setState({ error: null }); window.location.hash = '#/' }}>Ir para o início</button>
+        </div>
+      </div>
+    )
+  }
 }

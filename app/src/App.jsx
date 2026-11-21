@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState } from 'react'
-import { HashRouter, Navigate, NavLink, Route, Routes } from 'react-router-dom'
+import { HashRouter, Navigate, NavLink, Route, Routes, useLocation } from 'react-router-dom'
 import { isConfigured, q, supabase } from './lib.js'
-import { Brand, Icon, Spinner, ToastProvider } from './components/ui.jsx'
+import { Brand, ErrorBoundary, Icon, Spinner, ToastProvider } from './components/ui.jsx'
 import Login, { CreateCompany } from './pages/Login.jsx'
 import Dashboard from './pages/Dashboard.jsx'
 import Auctions from './pages/Auctions.jsx'
@@ -82,6 +82,7 @@ const MENU = [
 
 function Shell() {
   const { profile, company, can } = useApp()
+  const loc = useLocation()
   const menu = MENU.filter((m) => can(m.module))
   return (
     <div className="shell">
@@ -106,6 +107,7 @@ function Shell() {
         </div>
       </aside>
       <main className="main">
+        <ErrorBoundary key={loc.pathname}>
         <Routes>
           <Route path="/" element={<Dashboard />} />
           <Route path="/leiloes" element={<Auctions />} />
@@ -120,6 +122,7 @@ function Shell() {
           <Route path="/configuracoes" element={<Settings />} />
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
+        </ErrorBoundary>
       </main>
       <nav className="bottom-nav">
         {menu.filter((m) => !m.desktopOnly).map((m) => (

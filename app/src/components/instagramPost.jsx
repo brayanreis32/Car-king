@@ -214,7 +214,10 @@ export function InstagramCard({ vehicle }) {
   const reload = () => q(supabase.from('instagram_posts').select('*').eq('vehicle_id', vehicle.id).order('created_at', { ascending: false })).then(setPosts).catch(() => setPosts([]))
   useEffect(() => { reload() }, [vehicle.id]) // eslint-disable-line react-hooks/exhaustive-deps
   if (!can('vehicles', 'edit')) return null
-  const published = posts.find((p) => p.status === 'published')
+  const forSale = posts.filter((p) => p.kind !== 'sold')
+  const published = forSale.find((p) => p.status === 'published')
+  const publishing = !published && forSale.find((p) => p.status === 'publishing')
+  const lastFail = !published && !publishing && forSale.find((p) => p.status === 'failed')
   return (
     <div className="card row between">
       <div>
