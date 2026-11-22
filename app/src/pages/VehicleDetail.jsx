@@ -22,18 +22,25 @@ export default function VehicleDetail() {
   const toast = useToast()
 
   const { data, error, loading, reload } = useLoad(async () => {
-    const [v, pa, budget, purchase] = await Promise.all([
+    const [v, pa, budget, purchase, ledger, pendParts, pendTow] = await Promise.all([
       q(supabase.from('vehicles').select('*').eq('id', id).single()),
       q(supabase.from('vehicle_profit_analysis').select('*').eq('vehicle_id', id).maybeSingle()),
       q(supabase.from('vehicle_budget_vs_actual').select('*').eq('vehicle_id', id).order('sort_order')),
       q(supabase.from('vehicle_purchases').select('*, auction_sources(name)').eq('vehicle_id', id).maybeSingle()),
+      q(supabase.from('vehicle_cost_ledger').select('cost_group, amount').eq('vehicle_id', id)).catch(() => []),
+      q(supabase.from('parts').select('estimated_total').eq('vehicle_id', id).in('status', ['identified', 'awaiting_quote', 'to_buy'])).catch(() => []),
+      q(supabase.from('transport_orders').select('estimated_cost').eq('vehicle_id', id).is('actual_cost', null).neq('status', 'cancelled')).catch(() => []),
     ])
-    return { v, pa, budget, purchase }
+    const sum = (rows, k) => rows.reduce((t, r) => t + Number(r[k] || 0), 0)
+    const groups = {}
+    for (const l of ledger) groups[l.cost_group] = (groups[l.cost_group] || 0) + Number(l.amount || 0)
+    const costs = { groups, pendingParts: { n: pendParts.length, total: sum(pendParts, 'estimated_total') }, pendingTow: { n: pendTow.length, total: sum(pendTow, 'estimated_cost') } }
+    return { v, pa, budget, purchase, costs }
   }, [id])
 
   if (loading && !data) return <Spinner />
   if (error) return <ErrorBox error={error} />
-  const { v, pa, budget, purchase } = data
+  const { v, pa, budget, purchase, costs } = data
   const sold = v.status === 'sold'
 
   const setStatus = async (status) => {
@@ -76,7 +83,7 @@ export default function VehicleDetail() {
         ['labor', 'Mão de obra'], ['expenses', 'Despesas'], ['documents', 'Documentos'], ['sale', sold ? 'Venda' : 'Vender'],
       ]} />
 
-      {tab === 'summary' && <Summary v={v} pa={pa} onEditPrices={() => setEditingPrices(true)} />}
+      {tab === 'summary' && <Summary v={v} pa={pa} costs={costs} onEditPrices={() => setEditingPrices(true)} />}
       {tab === 'photos' && <div className="stack">
         <VehiclePhotos vehicle={v} />
         <InstagramCard vehicle={v} />
@@ -95,7 +102,7 @@ export default function VehicleDetail() {
   )
 }
 
-function Summary({ v, pa, onEditPrices }) {
+function Summary({ v, pa, costs, onEditPrices }) {
   if (!pa) return <div className="card muted">Você não tem acesso à análise financeira deste veículo.</div>
   const sold = v.status === 'sold'
   const profit = sold ? pa.real_profit : pa.projected_profit
@@ -133,6 +140,7 @@ function Summary({ v, pa, onEditPrices }) {
             </>
           )}
         </div>
+        <CostBreakdown costs={costs} total={pa.actual_cost} />
         <div className="card">
           <h2 style={{ marginBottom: 10 }}>Tempo</h2>
           <div className="lines num">
@@ -143,6 +151,32 @@ function Summary({ v, pa, onEditPrices }) {
           </div>
         </div>
       </div>
+    </div>
+  )
+}
+
+// Todos os gastos do carro somados, por tipo — é isso que sai do lucro
+function CostBreakdown({ costs, total }) {
+  if (!costs) return null
+  const order = ['purchase', 'auction_fees', 'transport', 'parts', 'labor', 'documentation', 'inspection', 'storage', 'detailing', 'marketing', 'other']
+  const rows = order.filter((g) => costs.groups[g])
+  const { pendingParts: pp, pendingTow: pt } = costs
+  return (
+    <div className="card">
+      <h2 style={{ marginBottom: 10 }}>Gastos com este carro</h2>
+      <div className="lines num">
+        {rows.length === 0 && <div className="muted">Nenhum gasto lançado ainda.</div>}
+        {rows.map((g) => <div key={g}><span>{label('budget_line', g)}</span><span>{money(costs.groups[g])}</span></div>)}
+        <div style={{ borderTop: '1px solid var(--border)', paddingTop: 6 }}><b>Total gasto</b><b>{money(total)}</b></div>
+        {costs.groups.selling > 0 && <div><span className="muted">Despesas da venda (saem do lucro na venda)</span><span>{money(costs.groups.selling)}</span></div>}
+      </div>
+      {(pp.n > 0 || pt.n > 0) && (
+        <div className="alert-box warning small" style={{ marginTop: 10 }}>
+          Ainda <b>não entram</b> no total (são só previsão):
+          {pp.n > 0 && <div>· {pp.n} peça(s) “a comprar” — {money(pp.total)}. Na aba <b>Peças</b>, mude para “Comprada” e coloque o valor pago.</div>}
+          {pt.n > 0 && <div>· Reboque sem valor final — {money(pt.total)} previsto. Na aba <b>Reboque</b>, coloque o custo real.</div>}
+        </div>
+      )}
     </div>
   )
 }

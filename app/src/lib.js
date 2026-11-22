@@ -105,6 +105,7 @@ export const LABELS = {
   budget_line: {
     purchase: 'Lance de compra', auction_fees: 'Taxas do leilão', transport: 'Reboque / transporte', parts: 'Peças',
     labor: 'Mão de obra', documentation: 'Documentação', inspection: 'Inspeção', other: 'Outros custos',
+    storage: 'Estadia / pátio', detailing: 'Limpeza / estética', marketing: 'Anúncios',
     contingency: 'Reserva de imprevistos', selling: 'Despesas de venda',
   },
   decision: { viable: 'Vale a pena', above_limit: 'Lance acima do limite', not_viable: 'Não compensa' },

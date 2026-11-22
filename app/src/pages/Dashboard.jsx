@@ -58,8 +58,25 @@ export default function Dashboard() {
       <div className="grid grid-4">
         <Kpi to="/veiculos?tab=prep" label="Estoque (investido)" value={money(k.inventory_value)} hint="custo real dos carros não vendidos" />
         <Kpi to="/veiculos?tab=sale" label="Lucro projetado do estoque" value={money(k.projected_profit_inventory)} tone={Number(k.projected_profit_inventory) < 0 ? 'neg' : 'pos'} />
-        <Kpi to="/veiculos?tab=sold" label="Lucro realizado" value={money(k.realized_profit)} tone="gold" highlight hint={`Receita ${money(k.revenue)}`} />
+        <Kpi to="/veiculos?tab=sold" label="Receita das vendas" value={money(k.revenue)} hint={`${k.vehicles_sold ?? 0} carro(s) vendido(s)`} />
         <Kpi to="/veiculos?tab=sold" label="Margem média" value={pct(k.avg_margin_pct)} hint={k.avg_days_to_sell ? `${k.avg_days_to_sell} dias em média para vender` : 'carros vendidos'} />
+      </div>
+
+      <div className="card stack" style={{ gap: 10 }}>
+        <div className="card-title"><h2>Resultado — quanto gastou e quanto lucrou</h2></div>
+        <div className="grid grid-4">
+          <Kpi to="/veiculos" label="Total gasto nos carros" value={money(k.costs_all_vehicles)}
+            hint={`compra + reboque + peças + mão de obra + despesas · este mês ${money(k.vehicle_costs_month)}`} />
+          <Kpi to="/financeiro" label="Despesas gerais" value={money(k.overhead_expenses)} tone={Number(k.overhead_expenses) > 0 ? 'warn' : ''}
+            hint={`sem carro (aluguel, gasolina…) · este mês ${money(k.overhead_month)}`} />
+          <Kpi to="/veiculos?tab=sold" label="Lucro dos carros vendidos" value={money(k.realized_profit)} tone={Number(k.realized_profit) < 0 ? 'neg' : 'pos'}
+            hint="venda − todos os gastos do carro" />
+          <Kpi label="Lucro líquido" value={money(k.net_profit)} tone={Number(k.net_profit) < 0 ? 'neg' : 'gold'} highlight
+            hint="lucro dos vendidos − despesas gerais" />
+        </div>
+        {Number(k.pending_parts_estimate) > 0 && (
+          <div className="small muted">Peças ainda “a comprar” nos carros em estoque: {money(k.pending_parts_estimate)} (previsão — entra no gasto quando marcar como comprada).</div>
+        )}
       </div>
 
       {fin && (
