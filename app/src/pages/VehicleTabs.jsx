@@ -4,6 +4,7 @@ import { date, label, money, options, PART_STATUS_TONE, q, rpc, supabase, toNum,
 import { Badge, Empty, ErrorBox, Field, Icon, Kpi, Modal, MoneyInput, Select, Spinner, useAction, useLoad } from '../components/ui.jsx'
 import { useApp } from '../App.jsx'
 import { DeliveryPost } from '../components/instagramPost.jsx'
+import { PayModal } from './Finance.jsx'
 import { ReminderButton } from '../components/reminder.jsx'
 import { Attachments, AttachmentRow, AttachmentsButton, FilePick, uploadAll, useAttachmentCounts } from '../components/attachments.jsx'
 
@@ -31,32 +32,53 @@ function SupplierSelect({ value, onChange, type = 'other' }) {
 const TRANSPORT_STATUS = ['quoted', 'booked', 'picked_up', 'in_transit', 'delivered', 'cancelled']
 
 export function Transport({ vehicle, onChange }) {
-  const { data, error, loading, reload } = useLoad(() => q(supabase.from('transport_orders').select('*, suppliers(name)').eq('vehicle_id', vehicle.id).order('created_at')), [vehicle.id])
+  const { can } = useApp()
+  const fin = can('finance', 'view')
+  const { data, error, loading, reload } = useLoad(async () => {
+    const orders = await q(supabase.from('transport_orders').select('*, suppliers(name)').eq('vehicle_id', vehicle.id).order('created_at'))
+    const ids = orders.map((t) => t.id)
+    const [payables, accounts] = fin && ids.length ? await Promise.all([
+      q(supabase.from('accounts_payable').select('*').eq('source_type', 'transport_order').in('source_id', ids).neq('status', 'cancelled')).catch(() => []),
+      q(supabase.from('financial_account_balances').select('*').eq('is_active', true).order('name')).catch(() => []),
+    ]) : [[], []]
+    return { orders, payables: Object.fromEntries(payables.map((p) => [p.source_id, p])), accounts }
+  }, [vehicle.id])
   const [editing, setEditing] = useState(null)
+  const [paying, setPaying] = useState(null)
   const sold = vehicle.status === 'sold'
   if (loading) return <Spinner />
   if (error) return <ErrorBox error={error} />
   return (
     <div className="stack">
-      {data.length === 0 && <div className="card"><Empty title="Nenhum reboque registrado" /></div>}
-      {data.map((t) => (
-        <div key={t.id} className="card">
-          <div className="row between">
-            <div>
-              <b>{t.suppliers?.name || t.carrier_name || 'Reboque'}</b> <Badge tone={t.status === 'delivered' ? 'success' : t.status === 'cancelled' ? '' : 'info'}>{label('transport_status', t.status)}</Badge>
-              <div className="muted small">{t.pickup_address || 'origem não informada'} → {t.destination_address || 'empresa'}</div>
+      {data.orders.length === 0 && <div className="card"><Empty title="Nenhum reboque registrado" /></div>}
+      {data.orders.map((t) => {
+        const ap = data.payables[t.id]
+        const paid = ap?.status === 'paid'
+        const cost = t.actual_cost ?? t.estimated_cost
+        return (
+          <div key={t.id} className="card">
+            <div className="row between">
+              <div>
+                <b>{t.suppliers?.name || t.carrier_name || 'Reboque'}</b> <Badge tone={t.status === 'delivered' ? 'success' : t.status === 'cancelled' ? '' : 'info'}>{label('transport_status', t.status)}</Badge>
+                {t.status !== 'cancelled' && Number(cost) > 0 && (ap ? <> <Badge tone={paid ? 'success' : 'warning'}>{paid ? 'Pago' : ap.status === 'partial' ? 'Pago em parte' : 'A pagar'}</Badge></> : null)}
+                <div className="muted small">{t.pickup_address || 'origem não informada'} → {t.destination_address || 'empresa'}</div>
+              </div>
+              {!sold && <button className="btn-sm" onClick={() => setEditing(t)}><Icon name="edit" /> Atualizar</button>}
             </div>
-            {!sold && <button className="btn-sm" onClick={() => setEditing(t)}><Icon name="edit" /> Atualizar</button>}
+            <div className="lines num small" style={{ marginTop: 10 }}>
+              <div><span>Valor do reboque (entra no custo)</span><b>{t.status === 'cancelled' ? '—' : money(cost)}</b></div>
+              {ap && !paid && Number(ap.paid_amount) > 0 && <div><span>Já pago</span><span>{money(ap.paid_amount)} · falta {money(ap.balance)}</span></div>}
+              <div><span>Coleta / entrega</span><span>{date(t.pickup_date)} → {date(t.delivered_at || t.expected_delivery_date)}</span></div>
+            </div>
+            {ap && !paid && fin && (
+              <button className="btn-primary btn-sm" style={{ marginTop: 10 }} onClick={() => setPaying(ap)}>Marcar como pago</button>
+            )}
           </div>
-          <div className="lines num small" style={{ marginTop: 10 }}>
-            <div><span>Previsto</span><span>{money(t.estimated_cost)}</span></div>
-            <div><span>Pago</span><b className={t.actual_cost === null ? 'muted' : Number(t.actual_cost) > Number(t.estimated_cost) ? 'neg' : 'pos'}>{t.actual_cost === null ? 'ainda não informado' : money(t.actual_cost)}</b></div>
-            <div><span>Coleta / entrega</span><span>{date(t.pickup_date)} → {date(t.delivered_at || t.expected_delivery_date)}</span></div>
-          </div>
-        </div>
-      ))}
+        )
+      })}
       {!sold && <button onClick={() => setEditing({})}><Icon name="plus" /> Adicionar reboque/transporte</button>}
       {editing && <TransportModal vehicle={vehicle} t={editing} onClose={() => setEditing(null)} onDone={() => { setEditing(null); reload(); onChange() }} />}
+      {paying && <PayModal kind="pay" row={paying} accounts={data.accounts} onClose={() => setPaying(null)} onDone={() => { setPaying(null); reload(); onChange() }} />}
     </div>
   )
 }
@@ -95,8 +117,7 @@ function TransportModal({ vehicle, t, onClose, onDone }) {
         <div className="form-grid">
           <Field label="Empresa de reboque"><SupplierSelect value={f.supplier_id} onChange={set('supplier_id')} type="transport" /></Field>
           <Field label="Status"><Select value={f.status} onChange={set('status')} options={TRANSPORT_STATUS.map((s) => [s, label('transport_status', s)])} /></Field>
-          <Field label="Valor previsto"><MoneyInput value={f.estimated_cost} onChange={set('estimated_cost')} /></Field>
-          <Field label="Valor pago"><MoneyInput value={f.actual_cost} onChange={set('actual_cost')} placeholder="quando pagar" /></Field>
+          <Field label="Valor do reboque"><MoneyInput value={f.actual_cost === '' ? f.estimated_cost : f.actual_cost} onChange={(v) => setF((s) => ({ ...s, estimated_cost: v, actual_cost: v }))} /></Field>
           <Field label="Retirada em" span><input value={f.pickup_address} onChange={(e) => set('pickup_address')(e.target.value)} /></Field>
           <Field label="Destino" span><input value={f.destination_address} onChange={(e) => set('destination_address')(e.target.value)} /></Field>
           <Field label="Data da coleta"><input type="date" value={f.pickup_date} onChange={(e) => set('pickup_date')(e.target.value)} /></Field>
@@ -106,7 +127,7 @@ function TransportModal({ vehicle, t, onClose, onDone }) {
         {t.id
           ? <Attachments entityType="transport_order" entityId={t.id} vehicleId={vehicle.id} title="Recibo do reboque (opcional)" />
           : <FilePick files={files} onChange={setFiles} label="Anexar recibo (opcional)" />}
-        <p className="small muted" style={{ margin: 0 }}>O valor pago entra no custo do carro e em contas a pagar. Entregue = carro muda para “Recebido”.</p>
+        <p className="small muted" style={{ margin: 0 }}>O valor do reboque entra no custo do carro na hora e vai para contas a pagar. Para marcar como pago, use o botão “Marcar como pago” no reboque. Entregue = carro muda para “Recebido”.</p>
       </div>
     </Modal>
   )

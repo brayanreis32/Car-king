@@ -79,7 +79,7 @@ export default function Finance() {
   )
 }
 
-function PayModal({ kind, row, accounts, onClose, onDone }) {
+export function PayModal({ kind, row, accounts, onClose, onDone }) {
   const [f, setF] = useState({ account_id: accounts[0]?.account_id || '', new_account: accounts.length ? '' : 'Banco', amount: row.balance, date: today() })
   const set = (k) => (v) => setF((s) => ({ ...s, [k]: v }))
   const [run, busy] = useAction()

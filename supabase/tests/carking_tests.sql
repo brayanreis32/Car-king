@@ -196,8 +196,8 @@ insert into suppliers (name, supplier_type) values ('Auto Parts Co', 'parts'), (
 
 select pg_temp.eq('reboque previsto criado na compra',
   (select estimated_cost || '/' || status from transport_orders), '350.00/quoted');
-select pg_temp.eq('reboque previsto não gera conta a pagar',
-  (select count(*) from accounts_payable where source_type = 'transport_order'), 0::bigint);
+select pg_temp.eq('reboque com valor já conta como gasto e gera conta a pagar',
+  (select count(*) from accounts_payable where source_type = 'transport_order' and amount = 350), 1::bigint);
 update transport_orders set supplier_id = (select id from suppliers where name = 'Fast Carrier'),
                             carrier_name = 'Fast Carrier', status = 'booked';
 select pg_temp.eq('transporte agendado → aguardando retirada', (select status::text from vehicles), 'awaiting_pickup');
@@ -663,6 +663,23 @@ select pg_temp.must_fail('usuário do app não lista candidatos (expõe a chave)
 reset role;
 set role anon;
 select pg_temp.must_fail('visitante não lista candidatos', $q$select * from public.instagram_autopost_candidates(0, 10)$q$);
+
+-- ---------------------------------------------------------------------------
+-- Reboque: valor informado já conta como gasto e gera conta a pagar
+-- ---------------------------------------------------------------------------
+reset role;
+insert into transport_orders (company_id, vehicle_id, carrier_name, estimated_cost, status)
+select company_id, id, 'Reboque teste', 200, 'booked' from vehicles where stock_number = 'CK-SITE1';
+select pg_temp.eq('reboque: valor previsto vira custo',
+  (select actual_cost from transport_orders where carrier_name = 'Reboque teste'), 200.00::numeric);
+select pg_temp.eq('reboque: gera conta a pagar',
+  (select ap.amount from accounts_payable ap join transport_orders t on ap.source_id = t.id where t.carrier_name = 'Reboque teste' and ap.status = 'open'), 200.00::numeric);
+update transport_orders set estimated_cost = 250 where carrier_name = 'Reboque teste';
+select pg_temp.eq('reboque: mudar o valor atualiza o custo',
+  (select actual_cost from transport_orders where carrier_name = 'Reboque teste'), 250.00::numeric);
+update transport_orders set actual_cost = 230 where carrier_name = 'Reboque teste';
+select pg_temp.eq('reboque: valor pago diferente é respeitado',
+  (select actual_cost from transport_orders where carrier_name = 'Reboque teste'), 230.00::numeric);
 
 reset role;
 \echo 'CARKING: todos os testes de regras de negócio passaram.'
