@@ -22,7 +22,7 @@ export default function VehicleDetail() {
   const toast = useToast()
 
   const { data, error, loading, reload } = useLoad(async () => {
-    const [v, pa, budget, purchase, ledger, pendParts, pendTow] = await Promise.all([
+    const [v, pa, budget, purchase, ledger, pendParts, pendTow, services] = await Promise.all([
       q(supabase.from('vehicles').select('*').eq('id', id).single()),
       q(supabase.from('vehicle_profit_analysis').select('*').eq('vehicle_id', id).maybeSingle()),
       q(supabase.from('vehicle_budget_vs_actual').select('*').eq('vehicle_id', id).order('sort_order')),
@@ -30,11 +30,14 @@ export default function VehicleDetail() {
       q(supabase.from('vehicle_cost_ledger').select('cost_group, amount').eq('vehicle_id', id)).catch(() => []),
       q(supabase.from('parts').select('estimated_total').eq('vehicle_id', id).in('status', ['identified', 'awaiting_quote', 'to_buy'])).catch(() => []),
       q(supabase.from('transport_orders').select('estimated_cost').eq('vehicle_id', id).is('actual_cost', null).neq('status', 'cancelled')).catch(() => []),
+      q(supabase.from('repair_items_overview').select('status, estimated_cost, actual_cost').eq('vehicle_id', id)).catch(() => []),
     ])
     const sum = (rows, k) => rows.reduce((t, r) => t + Number(r[k] || 0), 0)
     const groups = {}
     for (const l of ledger) groups[l.cost_group] = (groups[l.cost_group] || 0) + Number(l.amount || 0)
     const costs = { groups, pendingParts: { n: pendParts.length, total: sum(pendParts, 'estimated_total') }, pendingTow: { n: pendTow.length, total: sum(pendTow, 'estimated_cost') } }
+    const unpaidLabor = services.filter((i) => i.status !== 'cancelled' && Number(i.estimated_cost) > Number(i.actual_cost || 0))
+    costs.pendingLabor = { n: unpaidLabor.length, total: unpaidLabor.reduce((t, i) => t + Number(i.estimated_cost) - Number(i.actual_cost || 0), 0) }
     return { v, pa, budget, purchase, costs }
   }, [id])
 
@@ -160,7 +163,7 @@ function CostBreakdown({ costs, total }) {
   if (!costs) return null
   const order = ['purchase', 'auction_fees', 'transport', 'parts', 'labor', 'documentation', 'inspection', 'storage', 'detailing', 'marketing', 'other']
   const rows = order.filter((g) => costs.groups[g])
-  const { pendingParts: pp, pendingTow: pt } = costs
+  const { pendingParts: pp, pendingTow: pt, pendingLabor: pl } = costs
   return (
     <div className="card">
       <h2 style={{ marginBottom: 10 }}>Gastos com este carro</h2>
@@ -170,10 +173,11 @@ function CostBreakdown({ costs, total }) {
         <div style={{ borderTop: '1px solid var(--border)', paddingTop: 6 }}><b>Total gasto</b><b>{money(total)}</b></div>
         {costs.groups.selling > 0 && <div><span className="muted">Despesas da venda (saem do lucro na venda)</span><span>{money(costs.groups.selling)}</span></div>}
       </div>
-      {(pp.n > 0 || pt.n > 0) && (
+      {(pp.n > 0 || pt.n > 0 || pl.n > 0) && (
         <div className="alert-box warning small" style={{ marginTop: 10 }}>
           Ainda <b>não entram</b> no total (são só previsão):
           {pp.n > 0 && <div>· {pp.n} peça(s) “a comprar” — {money(pp.total)}. Na aba <b>Peças</b>, mude para “Comprada” e coloque o valor pago.</div>}
+          {pl.n > 0 && <div>· {pl.n} serviço(s) de mão de obra sem pagamento lançado — {money(pl.total)} previsto. Na aba <b>Mão de obra</b>, clique em <b>$ Lançar</b> no serviço.</div>}
           {pt.n > 0 && <div>· Reboque sem valor final — {money(pt.total)} previsto. Na aba <b>Reboque</b>, coloque o custo real.</div>}
         </div>
       )}
