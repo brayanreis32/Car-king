@@ -85,9 +85,13 @@ async function main() {
     let i = 0
     const thumbs = root.querySelector('.g-thumbs')
     thumbs.innerHTML = list.map((u, k) => `<button type="button" data-k="${k}" aria-label="Photo ${k + 1}"><img src="${esc(u)}" alt="" loading="lazy" /></button>`).join('')
+    const bg = document.createElement('img')
+    bg.className = 'g-bg'; bg.alt = ''; bg.setAttribute('aria-hidden', 'true')
+    img.before(bg)
     const show = (k) => {
       i = (k + list.length) % list.length
       img.src = list[i]
+      bg.src = list[i]
       root.querySelector('.g-count').textContent = `${i + 1} / ${list.length}`
       thumbs.querySelectorAll('button').forEach((b, n) => b.classList.toggle('on', n === i))
     }

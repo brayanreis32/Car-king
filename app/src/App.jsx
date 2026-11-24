@@ -14,6 +14,7 @@ import Employees from './pages/Employees.jsx'
 import Customers from './pages/Customers.jsx'
 import CustomerDetail from './pages/CustomerDetail.jsx'
 import Contract from './pages/Contract.jsx'
+import { BUILD, UpdateBanner } from './components/updater.jsx'
 
 const AppCtx = createContext(null)
 export const useApp = () => useContext(AppCtx)
@@ -86,6 +87,7 @@ function Shell() {
   const menu = MENU.filter((m) => can(m.module))
   return (
     <div className="shell">
+      <UpdateBanner />
       <header className="mobile-top"><img src="./logo.jpg" alt="Car King Auto Sales" /></header>
       <aside className="sidebar">
         <div className="brand"><img src="./logo-dark.webp" alt="Car King Auto Sales" width="600" height="173" /></div>
@@ -103,6 +105,7 @@ function Shell() {
         <div className="sidebar-foot">
           <div className="who">{profile.full_name}</div>
           <div>{profile.roles?.name} · {company.name}</div>
+          <div className="small muted">Versão {BUILD}</div>
           <button className="btn-sm" onClick={() => supabase.auth.signOut()}><Icon name="logout" /> Sair</button>
         </div>
       </aside>

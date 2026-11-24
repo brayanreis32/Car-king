@@ -7,17 +7,53 @@ import { Empty, Icon, Spinner, useAction, useLoad, useToast } from './ui.jsx'
 import { useApp } from '../App.jsx'
 
 const BUCKET = 'vehicle-media'
-const MAX_SIDE = 1600
+// Tamanho padrão das fotos de venda: 1600×1200 (4:3), igual no site, no
+// sistema e no Instagram.
+const OUT_W = 1600, OUT_H = 1200
 
-// Reduz a foto para no máximo 1600px (JPEG ~85%). Se o navegador não conseguir
-// ler o formato (ex.: HEIC no Chrome), envia o arquivo original.
+// Padroniza a foto em 1600×1200 (JPEG ~85%):
+// * foto deitada perto de 4:3 → corta um pouco das bordas e preenche tudo;
+// * foto em pé ou muito comprida → foto inteira no meio, com o fundo feito
+//   da própria foto desfocada (sem faixa preta).
+// Se o navegador não conseguir ler o formato (ex.: HEIC no Chrome), envia o original.
 async function shrink(file) {
   try {
     const bmp = await createImageBitmap(file, { imageOrientation: 'from-image' })
-    const scale = Math.min(1, MAX_SIDE / Math.max(bmp.width, bmp.height))
-    const w = Math.round(bmp.width * scale), h = Math.round(bmp.height * scale)
-    const canvas = document.createElement('canvas'); canvas.width = w; canvas.height = h
-    canvas.getContext('2d').drawImage(bmp, 0, 0, w, h)
+    const canvas = document.createElement('canvas'); canvas.width = OUT_W; canvas.height = OUT_H
+    const ctx = canvas.getContext('2d')
+    ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high'
+    const ratio = bmp.width / bmp.height
+    const cover = Math.max(OUT_W / bmp.width, OUT_H / bmp.height)
+    if (ratio >= 1.2 && ratio <= 1.45) {
+      const w = bmp.width * cover, h = bmp.height * cover
+      ctx.drawImage(bmp, (OUT_W - w) / 2, (OUT_H - h) / 2, w, h)
+    } else {
+      // fundo: a própria foto ampliada e bem desfocada
+      const cw = bmp.width * cover, ch = bmp.height * cover
+      ctx.filter = 'blur(48px)'
+      if (ctx.filter === 'blur(48px)') {
+        ctx.drawImage(bmp, (OUT_W - cw) / 2 - 60, (OUT_H - ch) / 2 - 60, cw + 120, ch + 120)
+      } else {
+        // celular sem suporte a filtro: reduz e amplia em etapas (desfoque suave)
+        let src = bmp, sw = bmp.width, sh = bmp.height, x = 0, y = 0
+        const c0 = Math.max(16 / sw, 12 / sh)
+        const t = document.createElement('canvas'); t.width = 16; t.height = 12
+        t.getContext('2d').drawImage(src, (16 - sw * c0) / 2, (12 - sh * c0) / 2, sw * c0, sh * c0)
+        src = t; sw = 16; sh = 12
+        while (sw < OUT_W / 2) {
+          const n = document.createElement('canvas'); n.width = sw * 2; n.height = sh * 2
+          const nc = n.getContext('2d'); nc.imageSmoothingQuality = 'high'; nc.drawImage(src, 0, 0, n.width, n.height)
+          src = n; sw = n.width; sh = n.height
+        }
+        ctx.filter = 'none'
+        ctx.drawImage(src, x - 40, y - 30, OUT_W + 80, OUT_H + 60)
+      }
+      ctx.filter = 'none'
+      ctx.fillStyle = 'rgba(0,0,0,0.28)'; ctx.fillRect(0, 0, OUT_W, OUT_H)
+      const fit = Math.min(OUT_W / bmp.width, OUT_H / bmp.height)
+      const w = bmp.width * fit, h = bmp.height * fit
+      ctx.drawImage(bmp, (OUT_W - w) / 2, (OUT_H - h) / 2, w, h)
+    }
     const blob = await new Promise((r) => canvas.toBlob(r, 'image/jpeg', 0.85))
     if (!blob) throw new Error('falha ao converter')
     return { blob, type: 'image/jpeg', ext: 'jpg' }

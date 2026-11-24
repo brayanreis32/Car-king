@@ -16,7 +16,7 @@ const fmtMiles = (v) => (v ? `${new Intl.NumberFormat('en-US').format(v)} miles`
 const carTitle = (v) => [v.year, v.make, v.model].filter(Boolean).join(' ')
 const tag = (s) => `#${String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '')}`
 
-// ---------- Legenda (sem preço) ----------
+// ---------- Legenda (o preço vai na primeira arte) ----------
 const OPENERS = [
   (v) => `🚗 ${carTitle(v)}${v.trim ? ` ${v.trim}` : ''} just arrived!`,
   (v) => `👑 New in stock: ${carTitle(v)}${v.trim ? ` ${v.trim}` : ''}`,
@@ -32,7 +32,7 @@ export function buildCaption(v, phone, variant = 0) {
     '✅ Inspected and reconditioned',
     '💰 In-house financing available: weekly, bi-weekly or monthly payments',
     '',
-    `📲 Call or WhatsApp${phone ? ` ${phone}` : ''} for price and availability`,
+    `📲 Call or WhatsApp${phone ? ` ${phone}` : ''} for availability and test drive`,
     `🌐 ${SITE}`,
     '',
     '🇧🇷 Falamos Português · 🇪🇸 Hablamos Español',
@@ -41,6 +41,12 @@ export function buildCaption(v, phone, variant = 0) {
       tag(v.make), tag(`${v.make}${v.model}`), tag(v.model), '#carrosusadoseua', '#brasileirosnoseua'].filter((t) => t.length > 1).join(' '),
   ]
   return lines.filter((l) => l !== null).join('\n')
+}
+
+// Preço do carro (anunciado ou venda esperada): só na primeira arte
+export const carPrice = (v) => {
+  const p = Number(v.listed_price ?? v.expected_sale_price ?? v.price)
+  return p > 0 ? `$${new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 }).format(p)}` : ''
 }
 
 // ---------- Artes ----------
@@ -76,6 +82,14 @@ function coverSlide(photo, logo, v, phone) {
   ctx.fillText(carTitle(v), W / 2, 1185)
   ctx.fillStyle = '#C9C9C5'; ctx.font = '500 36px Inter, Arial, sans-serif'
   ctx.fillText([v.trim, fmtMiles(v.odometer)].filter(Boolean).join('  ·  '), W / 2, 1240)
+  const price = carPrice(v)
+  if (price) {
+    // etiqueta dourada com o preço, no canto de cima da foto
+    ctx.font = '800 46px Inter, Arial, sans-serif'
+    const pw = ctx.measureText(price).width + 64
+    ctx.fillStyle = GOLD; ctx.fillRect(W - pw - 40, 180, pw, 78)
+    ctx.fillStyle = '#111'; ctx.textAlign = 'center'; ctx.fillText(price, W - 40 - pw / 2, 236)
+  }
   ctx.fillStyle = GOLD; ctx.fillRect(0, H - 70, W, 70)
   ctx.fillStyle = '#111'; ctx.font = '800 32px Inter, Arial, sans-serif'
   ctx.fillText(`CALL / WHATSAPP ${phone || ''}`.trim(), W / 2, H - 24)
@@ -102,7 +116,7 @@ function ctaSlide(logo, phone) {
   ctx.fillText('Weekly · Bi-weekly · Monthly payments', W / 2, 690)
   ctx.fillText('First-time buyers welcome', W / 2, 745)
   ctx.strokeStyle = '#333'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(240, 820); ctx.lineTo(840, 820); ctx.stroke()
-  ctx.fillStyle = '#C9C9C5'; ctx.font = '500 36px Inter, Arial, sans-serif'; ctx.fillText('Call or WhatsApp for price', W / 2, 900)
+  ctx.fillStyle = '#C9C9C5'; ctx.font = '500 36px Inter, Arial, sans-serif'; ctx.fillText('Call or WhatsApp today', W / 2, 900)
   ctx.fillStyle = '#fff'; ctx.font = '800 72px Inter, Arial, sans-serif'; ctx.fillText(phone || '', W / 2, 990)
   ctx.fillStyle = GOLD; ctx.font = '600 38px Inter, Arial, sans-serif'; ctx.fillText(SITE, W / 2, 1060)
   ctx.fillStyle = '#9A9A96'; ctx.font = '500 32px Inter, Arial, sans-serif'
@@ -192,7 +206,7 @@ export function InstagramPostModal({ vehicle, onClose }) {
             </div>
           )}
           <div className="row between">
-            <b className="small">Legenda (sem preço: o cliente chama para saber)</b>
+            <b className="small">Legenda (o preço aparece na primeira arte)</b>
             <button type="button" className="btn-ghost btn-sm" onClick={newCaption}>Outra legenda</button>
           </div>
           <textarea rows={9} value={caption} onChange={(e) => setCaption(e.target.value)} />

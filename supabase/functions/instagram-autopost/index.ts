@@ -91,6 +91,14 @@ async function coverSlide(photo, A, v, phone) {
   center(img, await text(A.f800, 84, carTitle(v), color(255, 255, 255), 980), 1112)
   const sub = [v.trim, fmtMiles(v)].filter(Boolean).join('  ·  ')
   if (sub) center(img, await text(A.f500, 36, sub, color(201, 201, 197), 980), 1210)
+  const p = Number(v.price)
+  if (p > 0) {
+    // etiqueta dourada com o preço, no canto de cima da foto
+    const t = await text(A.f800, 46, `$${new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 }).format(p)}`, color(17, 17, 17))
+    const pw = t.width + 64
+    rect(img, W - pw - 40, 180, pw, 78, color(...GOLD))
+    img.composite(t, W - 40 - pw + 32, 180 + Math.round((78 - t.height) / 2))
+  }
   rect(img, 0, H - 70, W, 70, color(...GOLD))
   center(img, await text(A.f800, 32, `CALL / WHATSAPP ${phone || ''}`.trim(), color(17, 17, 17)), H - 56)
   return img
@@ -111,7 +119,7 @@ async function ctaSlide(A, phone) {
   center(img, await text(A.f500, 38, 'Weekly · Bi-weekly · Monthly payments', color(255, 255, 255)), 650)
   center(img, await text(A.f500, 38, 'First-time buyers welcome', color(255, 255, 255)), 705)
   rect(img, 240, 820, 600, 2, color(51, 51, 51))
-  center(img, await text(A.f500, 36, 'Call or WhatsApp for price', color(201, 201, 197)), 865)
+  center(img, await text(A.f500, 36, 'Call or WhatsApp today', color(201, 201, 197)), 865)
   center(img, await text(A.f800, 72, phone || '', color(255, 255, 255)), 930)
   center(img, await text(A.f500, 38, SITE, color(...GOLD)), 1030)
   center(img, await text(A.f500, 32, 'Falamos Português · Hablamos Español', color(154, 154, 150)), 1170)
@@ -139,7 +147,7 @@ export function buildCaption(v, phone) {
     facts.length ? `✅ ${facts.join(' · ')}` : null,
     '✅ Inspected and reconditioned',
     '💰 In-house financing available: weekly, bi-weekly or monthly payments', '',
-    `📲 Call or WhatsApp${phone ? ` ${phone}` : ''} for price and availability`,
+    `📲 Call or WhatsApp${phone ? ` ${phone}` : ''} for availability and test drive`,
     `🌐 ${SITE}`, '',
     '🇧🇷 Falamos Português · 🇪🇸 Hablamos Español', '',
     ['#carkingautosales', '#usedcars', '#usedcarsforsale', '#massachusetts', '#buyherepayhere', '#financingavailable',

@@ -1,3 +1,4 @@
+import { BUILD } from '../components/updater.jsx'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { DEFAULT_REMINDER, date, money, q, reminderMessage, rpc, supabase, toNum } from '../lib.js'
@@ -8,7 +9,7 @@ export default function Settings() {
   const { company, can, reloadCompany, profile } = useApp()
   return (
     <div className="stack">
-      <div className="page-head"><div><h1>Configurações</h1><div className="muted small">{company.name} · {profile.roles?.name}</div></div></div>
+      <div className="page-head"><div><h1>Configurações</h1><div className="muted small">{company.name} · {profile.roles?.name} · Versão {BUILD}</div></div></div>
       {can('employees', 'view') && (
         <Link to="/funcionarios" className="card row between" style={{ textDecoration: 'none' }}>
           <div><h2>Funcionários e logins</h2><div className="muted small">Criar acessos para administrador e vendedores</div></div>

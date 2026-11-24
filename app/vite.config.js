@@ -28,4 +28,6 @@ const securityHeaders = {
 export default defineConfig({
   plugins: [react(), securityHeaders],
   base: './',
+  // data/hora da publicação, mostrada como "Versão" (para conferir se o celular atualizou)
+  define: { __BUILD__: JSON.stringify(new Date().toLocaleString('pt-BR', { timeZone: 'America/New_York', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })) },
 })

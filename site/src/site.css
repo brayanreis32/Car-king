@@ -134,8 +134,8 @@ svg { flex-shrink: 0; }
 .cards { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 20px; }
 .card { background: #fff; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
 .car { display: flex; flex-direction: column; box-shadow: 0 1px 2px rgba(0,0,0,.04); }
-.car-photo { position: relative; display: block; aspect-ratio: 4 / 3; background: var(--bg-2); }
-.car-photo img { width: 100%; height: 100%; object-fit: cover; }
+.car-photo { position: relative; display: block; aspect-ratio: 4 / 3; background: var(--bg-2); overflow: hidden; }
+.car-photo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .no-photo { height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; color: #8E9095; font-size: 13px; }
 .no-photo svg { width: 40px; height: 40px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
 .no-photo.big { aspect-ratio: 4 / 3; background: var(--bg-2); border-radius: 8px; }
@@ -239,15 +239,17 @@ svg { flex-shrink: 0; }
 .vd-badges { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
 .vd-actions { display: flex; flex-direction: column; gap: 10px; padding-bottom: 20px; margin-bottom: 18px; border-bottom: 1px solid var(--line); }
 .gallery .g-main { position: relative; background: #111; border-radius: 8px; overflow: hidden; aspect-ratio: 4 / 3; }
-.gallery .g-main img { width: 100%; height: 100%; object-fit: contain; }
+.gallery .g-main #g-img { position: relative; width: 100%; height: 100%; object-fit: contain; }
+/* fundo da própria foto desfocada: foto em pé não fica com faixa preta */
+.gallery .g-main .g-bg { position: absolute; inset: -40px; width: calc(100% + 80px); height: calc(100% + 80px); object-fit: cover; filter: blur(28px) brightness(.75); }
 .g-nav { position: absolute; top: 50%; transform: translateY(-50%); width: 44px; height: 44px; border-radius: 50%; border: 0; background: rgba(255,255,255,.92); font-size: 26px; line-height: 1; cursor: pointer; color: var(--ink); }
 .g-prev { left: 12px; } .g-next { right: 12px; }
 .g-count { position: absolute; right: 12px; bottom: 12px; background: rgba(0,0,0,.6); color: #fff; font-size: 12.5px; padding: 3px 9px; border-radius: 999px; }
 .gallery.single .g-nav, .gallery.single .g-thumbs { display: none; }
 .g-thumbs { display: grid; grid-template-columns: repeat(auto-fill, minmax(88px, 1fr)); gap: 8px; margin-top: 10px; }
-.g-thumbs button { padding: 0; border: 2px solid transparent; border-radius: 6px; overflow: hidden; cursor: pointer; aspect-ratio: 4 / 3; background: var(--bg-2); }
+.g-thumbs button { position: relative; padding: 0; border: 2px solid transparent; border-radius: 6px; overflow: hidden; cursor: pointer; aspect-ratio: 4 / 3; background: var(--bg-2); }
 .g-thumbs button.on { border-color: var(--gold); }
-.g-thumbs img { width: 100%; height: 100%; object-fit: cover; }
+.g-thumbs img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .specs { display: grid; grid-template-columns: 1fr 1fr; gap: 0 28px; margin: 0; }
 .specs div { display: flex; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--line); }
 .specs dt { color: var(--muted); }
