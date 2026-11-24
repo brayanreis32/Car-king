@@ -86,7 +86,7 @@ export default function VehicleDetail() {
         ['labor', 'Mão de obra'], ['expenses', 'Despesas'], ['documents', 'Documentos'], ['sale', sold ? 'Venda' : 'Vender'],
       ]} />
 
-      {tab === 'summary' && <Summary v={v} pa={pa} costs={costs} onEditPrices={() => setEditingPrices(true)} />}
+      {tab === 'summary' && <Summary v={v} pa={pa} costs={costs} budget={budget} onEditPrices={() => setEditingPrices(true)} />}
       {tab === 'photos' && <div className="stack">
         <VehiclePhotos vehicle={v} />
         <InstagramCard vehicle={v} />
@@ -105,7 +105,7 @@ export default function VehicleDetail() {
   )
 }
 
-function Summary({ v, pa, costs, onEditPrices }) {
+function Summary({ v, pa, costs, budget, onEditPrices }) {
   if (!pa) return <div className="card muted">Você não tem acesso à análise financeira deste veículo.</div>
   const sold = v.status === 'sold'
   const profit = sold ? pa.real_profit : pa.projected_profit
