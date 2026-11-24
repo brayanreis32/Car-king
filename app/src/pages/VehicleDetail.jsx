@@ -143,7 +143,7 @@ function Summary({ v, pa, costs, onEditPrices }) {
             </>
           )}
         </div>
-        <CostBreakdown costs={costs} total={pa.actual_cost} />
+        <CostBreakdown costs={costs} total={pa.actual_cost} projected={pa.projected_cost} budget={budget} sold={sold} />
         <div className="card">
           <h2 style={{ marginBottom: 10 }}>Tempo</h2>
           <div className="lines num">
@@ -159,27 +159,42 @@ function Summary({ v, pa, costs, onEditPrices }) {
 }
 
 // Todos os gastos do carro somados, por tipo — é isso que sai do lucro
-function CostBreakdown({ costs, total }) {
+// Gasto real (já lançado) + o que ainda está só previsto no orçamento da compra
+const WHERE = { parts: 'Peças', labor: 'Mão de obra', transport: 'Reboque', documentation: 'Despesas', inspection: 'Despesas', other: 'Despesas' }
+function CostBreakdown({ costs, total, projected, budget, sold }) {
   if (!costs) return null
   const order = ['purchase', 'auction_fees', 'transport', 'parts', 'labor', 'documentation', 'inspection', 'storage', 'detailing', 'marketing', 'other']
   const rows = order.filter((g) => costs.groups[g])
-  const { pendingParts: pp, pendingTow: pt, pendingLabor: pl } = costs
+  const pending = sold ? [] : (budget || [])
+    .filter((b) => !['contingency', 'selling'].includes(b.line) && Number(b.projected) - Number(b.actual) > 0.5)
+    .map((b) => ({ line: b.line, amount: Number(b.projected) - Number(b.actual) }))
+  const pendingTotal = pending.reduce((t, p) => t + p.amount, 0)
   return (
     <div className="card">
       <h2 style={{ marginBottom: 10 }}>Gastos com este carro</h2>
       <div className="lines num">
         {rows.length === 0 && <div className="muted">Nenhum gasto lançado ainda.</div>}
         {rows.map((g) => <div key={g}><span>{label('budget_line', g)}</span><span>{money(costs.groups[g])}</span></div>)}
-        <div style={{ borderTop: '1px solid var(--border)', paddingTop: 6 }}><b>Total gasto</b><b>{money(total)}</b></div>
+        <div style={{ borderTop: '1px solid var(--border)', paddingTop: 6 }}><b>Total gasto (já pago)</b><b>{money(total)}</b></div>
         {costs.groups.selling > 0 && <div><span className="muted">Despesas da venda (saem do lucro na venda)</span><span>{money(costs.groups.selling)}</span></div>}
       </div>
-      {(pp.n > 0 || pt.n > 0 || pl.n > 0) && (
-        <div className="alert-box warning small" style={{ marginTop: 10 }}>
-          Ainda <b>não entram</b> no total (são só previsão):
-          {pp.n > 0 && <div>· {pp.n} peça(s) “a comprar” — {money(pp.total)}. Na aba <b>Peças</b>, mude para “Comprada” e coloque o valor pago.</div>}
-          {pl.n > 0 && <div>· {pl.n} serviço(s) de mão de obra sem pagamento lançado — {money(pl.total)} previsto. Na aba <b>Mão de obra</b>, clique em <b>$ Lançar</b> no serviço.</div>}
-          {pt.n > 0 && <div>· Reboque sem valor final — {money(pt.total)} previsto. Na aba <b>Reboque</b>, coloque o custo real.</div>}
-        </div>
+      {pending.length > 0 && (
+        <>
+          <h3 style={{ margin: '16px 0 6px' }}>Ainda previsto (falta lançar)</h3>
+          <div className="lines num">
+            {pending.map((p) => (
+              <div key={p.line}>
+                <span>{label('budget_line', p.line)}{WHERE[p.line] && <span className="muted small"> · lançar na aba {WHERE[p.line]}</span>}</span>
+                <span className="muted">{money(p.amount)}</span>
+              </div>
+            ))}
+            <div style={{ borderTop: '1px solid var(--border)', paddingTop: 6 }}><b>Custo total previsto</b><b>{money(projected ?? Number(total) + pendingTotal)}</b></div>
+          </div>
+          <p className="small muted" style={{ margin: '8px 0 0' }}>
+            Valores do orçamento feito na compra. Quando pagar, lance na aba indicada: aí sai de “previsto” e entra no “Total gasto”.
+            O lucro projetado já desconta o custo total previsto.
+          </p>
+        </>
       )}
     </div>
   )
