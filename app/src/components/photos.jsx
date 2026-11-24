@@ -11,10 +11,10 @@ const BUCKET = 'vehicle-media'
 // sistema e no Instagram.
 const OUT_W = 1600, OUT_H = 1200
 
-// Padroniza a foto em 1600×1200 (JPEG ~85%):
-// * foto deitada já em 4:3 (padrão do celular) → só reduz, nada é cortado;
-// * qualquer outro formato → foto inteira no meio, com o fundo feito
-//   da própria foto desfocada (sem faixa preta).
+// Padroniza a foto em 1600×1200 (JPEG ~85%), preenchendo todo o quadro, sem bordas:
+// * foto deitada (padrão do celular) → só reduz, nada é cortado;
+// * foto em pé → recorta no formato deitado, mirando um pouco abaixo do meio
+//   (onde o carro costuma estar). Por isso o ideal é fotografar com o celular deitado.
 // Se o navegador não conseguir ler o formato (ex.: HEIC no Chrome), envia o original.
 async function shrink(file) {
   try {
@@ -22,41 +22,13 @@ async function shrink(file) {
     const canvas = document.createElement('canvas'); canvas.width = OUT_W; canvas.height = OUT_H
     const ctx = canvas.getContext('2d')
     ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high'
-    const ratio = bmp.width / bmp.height
+    const portrait = bmp.height > bmp.width
     const cover = Math.max(OUT_W / bmp.width, OUT_H / bmp.height)
-    if (ratio >= 1.3 && ratio <= 1.37) {
-      const w = bmp.width * cover, h = bmp.height * cover
-      ctx.drawImage(bmp, (OUT_W - w) / 2, (OUT_H - h) / 2, w, h)
-    } else {
-      // fundo: a própria foto ampliada e bem desfocada
-      const cw = bmp.width * cover, ch = bmp.height * cover
-      ctx.filter = 'blur(48px)'
-      if (ctx.filter === 'blur(48px)') {
-        ctx.drawImage(bmp, (OUT_W - cw) / 2 - 60, (OUT_H - ch) / 2 - 60, cw + 120, ch + 120)
-      } else {
-        // celular sem suporte a filtro: reduz e amplia em etapas (desfoque suave)
-        let src = bmp, sw = bmp.width, sh = bmp.height, x = 0, y = 0
-        const c0 = Math.max(16 / sw, 12 / sh)
-        const t = document.createElement('canvas'); t.width = 16; t.height = 12
-        t.getContext('2d').drawImage(src, (16 - sw * c0) / 2, (12 - sh * c0) / 2, sw * c0, sh * c0)
-        src = t; sw = 16; sh = 12
-        while (sw < OUT_W / 2) {
-          const n = document.createElement('canvas'); n.width = sw * 2; n.height = sh * 2
-          const nc = n.getContext('2d'); nc.imageSmoothingQuality = 'high'; nc.drawImage(src, 0, 0, n.width, n.height)
-          src = n; sw = n.width; sh = n.height
-        }
-        ctx.filter = 'none'
-        ctx.drawImage(src, x - 40, y - 30, OUT_W + 80, OUT_H + 60)
-      }
-      ctx.filter = 'none'
-      ctx.fillStyle = 'rgba(0,0,0,0.28)'; ctx.fillRect(0, 0, OUT_W, OUT_H)
-      const fit = Math.min(OUT_W / bmp.width, OUT_H / bmp.height)
-      const w = bmp.width * fit, h = bmp.height * fit
-      ctx.drawImage(bmp, (OUT_W - w) / 2, (OUT_H - h) / 2, w, h)
-    }
+    const w = bmp.width * cover, h = bmp.height * cover
+    ctx.drawImage(bmp, (OUT_W - w) / 2, (OUT_H - h) * (portrait ? 0.6 : 0.5), w, h)
     const blob = await new Promise((r) => canvas.toBlob(r, 'image/jpeg', 0.85))
     if (!blob) throw new Error('falha ao converter')
-    return { blob, type: 'image/jpeg', ext: 'jpg' }
+    return { blob, type: 'image/jpeg', ext: 'jpg', portrait }
   } catch {
     const ext = (file.name.split('.').pop() || 'jpg').toLowerCase()
     return { blob: file, type: file.type || 'image/jpeg', ext }
@@ -93,11 +65,12 @@ export function VehiclePhotos({ vehicle, onUploaded }) {
     ref.current.value = ''
     if (!files.length) return
     let next = (data?.rows.reduce((m, r) => Math.max(m, r.sort_order), 0) || 0) + 1
-    let ok = 0
+    let ok = 0, portraits = 0
     for (let i = 0; i < files.length; i++) {
       setProgress(`Enviando ${i + 1} de ${files.length}…`)
       try {
-        const { blob, type, ext } = await shrink(files[i])
+        const { blob, type, ext, portrait } = await shrink(files[i])
+        if (portrait) portraits++
         const path = `${company.id}/vehicle/${vehicle.id}/photos/${Date.now()}-${i}.${ext}`
         const { error } = await supabase.storage.from(BUCKET).upload(path, blob, { contentType: type })
         if (error) throw new Error(error.message)
@@ -112,6 +85,7 @@ export function VehiclePhotos({ vehicle, onUploaded }) {
     }
     setProgress(null)
     if (ok) toast(ok === 1 ? '1 foto enviada' : `${ok} fotos enviadas`)
+    if (portraits) setTimeout(() => toast(`${portraits} foto(s) tirada(s) em pé foram ajustadas e cortaram um pouco em cima/embaixo. Dica: fotografe com o celular deitado.`, 'warning'), 3200)
     reload()
     if (ok) onUploaded?.()
   }

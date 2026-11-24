@@ -95,7 +95,7 @@ export function carCard(v, url) {
   const price = Number(v.price) > 0 ? Number(v.price) : 0
   const fee = Number(v.doc_fee) || 0
   return `<article class="card car">
-    <a class="car-photo" href="${carUrl(v)}">${url ? `<img class="bg" src="${esc(url)}" alt="" aria-hidden="true" loading="lazy" /><img src="${esc(url)}" alt="${esc(name)}" loading="lazy" />` : `<div class="no-photo">${CAR_ICON}<span>Photos coming soon</span></div>`}
+    <a class="car-photo" href="${carUrl(v)}">${url ? `<img src="${esc(url)}" alt="${esc(name)}" loading="lazy" />` : `<div class="no-photo">${CAR_ICON}<span>Photos coming soon</span></div>`}
       ${v.reserved ? '<span class="badge badge-reserved">Reserved</span>' : ''}</a>
     <div class="car-body">
       <div class="car-stock">${v.stock_number ? `Stock # ${esc(v.stock_number)}` : '&nbsp;'}</div>

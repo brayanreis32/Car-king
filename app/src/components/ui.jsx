@@ -119,7 +119,7 @@ export function ToastProvider({ children }) {
   const [toast, setToast] = useState(null)
   const show = useCallback((text, tone = 'success') => {
     setToast({ text, tone })
-    setTimeout(() => setToast(null), tone === 'error' ? 6000 : 3000)
+    setTimeout(() => setToast(null), tone === 'success' ? 3000 : 7000)
   }, [])
   return (
     <ToastCtx.Provider value={show}>
