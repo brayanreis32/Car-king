@@ -45,6 +45,44 @@ function coverImg(img, w, h) {
   const r = img.clone().resize(Math.ceil(img.width * s), Math.ceil(img.height * s))
   return r.crop(Math.floor((r.width - w) / 2), Math.floor((r.height - h) / 2), w, h)
 }
+// Redimensiona com interpolação bilinear (a biblioteca só tem "vizinho mais próximo")
+function smoothResize(src, w, h) {
+  const out = new Image(w, h), sb = src.bitmap, ob = out.bitmap, sw = src.width, sh = src.height
+  const fx = sw / w, fy = sh / h
+  for (let y = 0; y < h; y++) {
+    const sy = Math.min(sh - 1, Math.max(0, (y + 0.5) * fy - 0.5)), y0 = Math.floor(sy), y1 = Math.min(sh - 1, y0 + 1), ty = sy - y0
+    for (let x = 0; x < w; x++) {
+      const sx = Math.min(sw - 1, Math.max(0, (x + 0.5) * fx - 0.5)), x0 = Math.floor(sx), x1 = Math.min(sw - 1, x0 + 1), tx = sx - x0
+      const a = (y0 * sw + x0) * 4, b = (y0 * sw + x1) * 4, c = (y1 * sw + x0) * 4, d = (y1 * sw + x1) * 4, o = (y * w + x) * 4
+      for (let k = 0; k < 4; k++) {
+        ob[o + k] = (sb[a + k] * (1 - tx) + sb[b + k] * tx) * (1 - ty) + (sb[c + k] * (1 - tx) + sb[d + k] * tx) * ty
+      }
+    }
+  }
+  return out
+}
+// Reduz em etapas de no máximo 2x (fica nítido, sem serrilhado)
+function shrinkTo(img, w, h) {
+  let cur = img
+  while (cur.width / 2 > w && cur.height / 2 > h) cur = smoothResize(cur, Math.ceil(cur.width / 2), Math.ceil(cur.height / 2))
+  return smoothResize(cur, w, h)
+}
+// Fundo feito da própria foto, ampliada e bem desfocada (e um pouco escurecida)
+function blurBg(img, w, h) {
+  const s = Math.max(w / img.width, h / img.height)
+  const cw = Math.round(w / s), ch = Math.round(h / s)
+  const crop = img.clone().crop(Math.floor((img.width - cw) / 2), Math.floor((img.height - ch) / 2), cw, ch)
+  let cur = shrinkTo(crop, Math.ceil(w / 32), Math.ceil(h / 32))
+  while (cur.width * 2 < w) cur = smoothResize(cur, cur.width * 2, cur.height * 2)
+  const bg = smoothResize(cur, w, h), bm = bg.bitmap
+  for (let i = 0; i < bm.length; i += 4) { bm[i] *= 0.62; bm[i + 1] *= 0.62; bm[i + 2] *= 0.62 }
+  return bg
+}
+// Foto inteira dentro da caixa (sem cortar nada do carro)
+function containImg(img, w, h) {
+  const s = Math.min(w / img.width, h / img.height)
+  return shrinkTo(img, Math.round(img.width * s), Math.round(img.height * s))
+}
 function fitWidth(img, w) { return img.clone().resize(w, Image.RESIZE_AUTO) }
 // faixa de transição para preto (de cima para baixo ou ao contrário)
 function fade(img, y0, y1, toBottom) {
@@ -157,9 +195,11 @@ function coverFacts(v) {
   ].filter(Boolean)
 }
 async function coverSlide(photo, A, v, phone) {
-  const img = coverImg(photo, W, H)
-  shade(img, 0, 640, 0.55, true)
-  shade(img, 900, 1150, 0.45, false)
+  // carro inteiro: a foto entra completa e o resto é a própria foto desfocada
+  const img = blurBg(photo, W, H)
+  const ph = containImg(photo, W, 880)
+  img.composite(ph, Math.round((W - ph.width) / 2), Math.max(250, 1150 - ph.height - 10))
+  shade(img, 0, 520, 0.5, true)
   // logo no canto, numa aba preta
   const lg = fitWidth(A.logo, 290)
   rect(img, W - 330, 0, 330, lg.height + 36, color(0, 0, 0))
@@ -221,7 +261,9 @@ async function coverSlide(photo, A, v, phone) {
   return img
 }
 async function photoSlide(photo, A, n, total) {
-  const img = coverImg(photo, W, H)
+  const img = blurBg(photo, W, H)
+  const ph = containImg(photo, W, H)
+  img.composite(ph, Math.round((W - ph.width) / 2), Math.round((H - ph.height) / 2))
   rect(img, W - 330, H - 120, 300, 90, color(0, 0, 0, 190))
   img.composite(fitWidth(A.logo, 270), W - 315, H - 112)
   rect(img, 30, 30, 110, 54, color(0, 0, 0, 160))

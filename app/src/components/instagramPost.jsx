@@ -61,6 +61,27 @@ function cover(ctx, im, x, y, w, h) {
   const sw = w / s, sh = h / s
   ctx.drawImage(im, (im.width - sw) / 2, (im.height - sh) / 2, sw, sh, x, y, w, h)
 }
+// Foto inteira (sem cortar o carro) sobre a própria foto desfocada
+function blurBg(ctx, im) {
+  ctx.save()
+  ctx.filter = 'blur(40px) brightness(0.62)'
+  if (ctx.filter.includes('blur')) {
+    cover(ctx, im, -60, -60, W + 120, H + 120)
+  } else {
+    const t = document.createElement('canvas'); t.width = 45; t.height = 56
+    cover(t.getContext('2d'), im, 0, 0, 45, 56)
+    ctx.filter = 'none'; ctx.imageSmoothingQuality = 'high'
+    ctx.drawImage(t, -40, -40, W + 80, H + 80)
+    ctx.fillStyle = 'rgba(0,0,0,0.38)'; ctx.fillRect(0, 0, W, H)
+  }
+  ctx.restore()
+}
+function contain(ctx, im, cx, top, bottom, maxW, maxH) {
+  const s = Math.min(maxW / im.width, maxH / im.height)
+  const w = im.width * s, h = im.height * s
+  const y = top === null ? bottom - h : top
+  ctx.drawImage(im, cx - w / 2, y, w, h)
+}
 function canvas() { const c = document.createElement('canvas'); c.width = W; c.height = H; return c }
 function fitText(ctx, text, max, size, weight = 800) {
   let s = size
@@ -108,9 +129,11 @@ function coverFacts(v) {
 function coverSlide(photo, logo, v, phone) {
   const c = canvas(), ctx = c.getContext('2d')
   ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H)
-  cover(ctx, photo, 0, 0, W, H)
-  shade(ctx, 0, 640, 0.55, true)
-  shade(ctx, 900, 1150, 0.45, false)
+  // carro inteiro: a foto entra completa e o resto é a própria foto desfocada
+  blurBg(ctx, photo)
+  const s0 = Math.min(W / photo.width, 880 / photo.height)
+  contain(ctx, photo, W / 2, Math.max(250, 1150 - photo.height * s0 - 10), null, W, 880)
+  shade(ctx, 0, 520, 0.5, true)
   ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'left'
 
   // logo numa aba preta no canto
@@ -181,7 +204,7 @@ function coverSlide(photo, logo, v, phone) {
 }
 function photoSlide(photo, logo, n, total) {
   const c = canvas(), ctx = c.getContext('2d')
-  cover(ctx, photo, 0, 0, W, H)
+  blurBg(ctx, photo); contain(ctx, photo, W / 2, (H - photo.height * Math.min(W / photo.width, H / photo.height)) / 2, null, W, H)
   ctx.fillStyle = 'rgba(0,0,0,.72)'
   ctx.beginPath(); ctx.roundRect(W - 330, H - 120, 300, 90, 16); ctx.fill()
   logoAt(ctx, logo, W - 315, H - 112, 270)

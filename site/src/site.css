@@ -135,7 +135,9 @@ svg { flex-shrink: 0; }
 .card { background: #fff; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
 .car { display: flex; flex-direction: column; box-shadow: 0 1px 2px rgba(0,0,0,.04); }
 .car-photo { position: relative; display: block; aspect-ratio: 4 / 3; background: var(--bg-2); overflow: hidden; }
-.car-photo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.car-photo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
+/* carro sempre inteiro: o que sobra é a própria foto desfocada */
+.car-photo img.bg { inset: -20px; width: calc(100% + 40px); height: calc(100% + 40px); object-fit: cover; filter: blur(18px) brightness(.7); }
 .no-photo { height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; color: #8E9095; font-size: 13px; }
 .no-photo svg { width: 40px; height: 40px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
 .no-photo.big { aspect-ratio: 4 / 3; background: var(--bg-2); border-radius: 8px; }

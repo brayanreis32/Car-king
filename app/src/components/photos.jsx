@@ -12,8 +12,8 @@ const BUCKET = 'vehicle-media'
 const OUT_W = 1600, OUT_H = 1200
 
 // Padroniza a foto em 1600×1200 (JPEG ~85%):
-// * foto deitada perto de 4:3 → corta um pouco das bordas e preenche tudo;
-// * foto em pé ou muito comprida → foto inteira no meio, com o fundo feito
+// * foto deitada já em 4:3 (padrão do celular) → só reduz, nada é cortado;
+// * qualquer outro formato → foto inteira no meio, com o fundo feito
 //   da própria foto desfocada (sem faixa preta).
 // Se o navegador não conseguir ler o formato (ex.: HEIC no Chrome), envia o original.
 async function shrink(file) {
@@ -24,7 +24,7 @@ async function shrink(file) {
     ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high'
     const ratio = bmp.width / bmp.height
     const cover = Math.max(OUT_W / bmp.width, OUT_H / bmp.height)
-    if (ratio >= 1.2 && ratio <= 1.45) {
+    if (ratio >= 1.3 && ratio <= 1.37) {
       const w = bmp.width * cover, h = bmp.height * cover
       ctx.drawImage(bmp, (OUT_W - w) / 2, (OUT_H - h) / 2, w, h)
     } else {
