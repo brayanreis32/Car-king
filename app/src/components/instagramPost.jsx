@@ -1,10 +1,11 @@
 // Post do Instagram para um carro à venda: monta o carrossel com as artes da
-// Car King (sem preço), gera a legenda e publica (ou baixa para postar à mão).
+// Car King (preço na primeira arte), gera a legenda e publica (ou baixa para postar à mão).
 import { useEffect, useState } from 'react'
 import { callFunction, date, q, supabase } from '../lib.js'
 import { Badge, Icon, Modal, Spinner, useToast } from './ui.jsx'
 import { useApp } from '../App.jsx'
 import { loadPhotos, signedUrls } from './photos.jsx'
+import ICONS from './igIcons.json'
 
 const W = 1080, H = 1350
 const GOLD = '#C9A13E'
@@ -67,32 +68,115 @@ function fitText(ctx, text, max, size, weight = 800) {
 }
 function logoAt(ctx, logo, x, y, w) { ctx.drawImage(logo, x, y, w, w * logo.height / logo.width) }
 
+// ---- primeira arte: estilo anúncio de concessionária (igual à do post automático) ----
+const noise = (n) => { const x = Math.sin(n * 12.9898) * 43758.5453; return x - Math.floor(x) }
+// faixa dourada com bordas de pincel, desenhada a partir de (x, y)
+function brush(ctx, x, y, w, h, seed) {
+  ctx.fillStyle = GOLD
+  for (let r = 0; r < h; r++) {
+    const l = 6 + noise(r + seed) * 24 + (noise(r * 3 + seed) > 0.85 ? 14 : 0)
+    const rr = w + 54 - noise(r * 7 + seed * 5) * 24 - (noise(r * 5 + seed) > 0.85 ? 16 : 0)
+    ctx.fillRect(x + l, y + r - 0.5, rr - l, 2)
+  }
+}
+const font = (size, weight = 800) => `${weight} ${size}px Inter, Arial, sans-serif`
+function fitFont(ctx, text, max, size, weight = 800) {
+  let s = size
+  do { ctx.font = font(s, weight); s -= 2 } while (ctx.measureText(text).width > max && s > 24)
+}
+function outlined(ctx, text, x, y, fill, stroke) {
+  ctx.lineJoin = 'round'; ctx.strokeStyle = '#000'; ctx.lineWidth = stroke * 2
+  ctx.fillStyle = '#000'; ctx.fillText(text, x, y + stroke) // sombra
+  ctx.strokeText(text, x, y); ctx.fillStyle = fill; ctx.fillText(text, x, y)
+}
+function shade(ctx, y0, y1, max, fromTop) {
+  const g = ctx.createLinearGradient(0, y0, 0, y1)
+  g.addColorStop(0, `rgba(0,0,0,${fromTop ? max : 0})`); g.addColorStop(1, `rgba(0,0,0,${fromTop ? 0 : max})`)
+  ctx.fillStyle = g; ctx.fillRect(0, y0, W, y1 - y0)
+}
+const TRANS_SHORT = { automatic: 'AUTOMATIC', cvt: 'AUTOMATIC', dual_clutch: 'AUTOMATIC', manual: 'MANUAL' }
+const TITLE_SHORT = { clean: 'CLEAN', rebuilt: 'REBUILT', salvage: 'SALVAGE' }
+function coverFacts(v) {
+  return [
+    v.odometer ? { icon: 'miles', a: new Intl.NumberFormat('en-US').format(v.odometer), b: 'MILES' } : null,
+    TITLE_SHORT[v.title_status] ? { icon: 'title', a: TITLE_SHORT[v.title_status], b: 'TITLE' } : null,
+    TRANS_SHORT[v.transmission] ? { icon: 'trans', a: TRANS_SHORT[v.transmission], b: 'TRANSMISSION' } : null,
+    { icon: 'money', a: 'IN-HOUSE', b: 'FINANCING' },
+  ].filter(Boolean)
+}
+
 function coverSlide(photo, logo, v, phone) {
   const c = canvas(), ctx = c.getContext('2d')
   ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H)
-  cover(ctx, photo, 0, 150, W, 900)
-  let g = ctx.createLinearGradient(0, 150, 0, 330); g.addColorStop(0, 'rgba(0,0,0,1)'); g.addColorStop(1, 'rgba(0,0,0,0)')
-  ctx.fillStyle = g; ctx.fillRect(0, 150, W, 180)
-  g = ctx.createLinearGradient(0, 860, 0, 1050); g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,1)')
-  ctx.fillStyle = g; ctx.fillRect(0, 860, W, 190)
-  logoAt(ctx, logo, 300, 34, 480)
-  ctx.fillStyle = GOLD; ctx.font = '700 30px Inter, Arial, sans-serif'; ctx.textAlign = 'center'
-  ctx.fillText('JUST ARRIVED', W / 2, 1100)
-  ctx.fillStyle = '#fff'; fitText(ctx, carTitle(v), 980, 84)
-  ctx.fillText(carTitle(v), W / 2, 1185)
-  ctx.fillStyle = '#C9C9C5'; ctx.font = '500 36px Inter, Arial, sans-serif'
-  ctx.fillText([v.trim, fmtMiles(v.odometer)].filter(Boolean).join('  ·  '), W / 2, 1240)
+  cover(ctx, photo, 0, 0, W, H)
+  shade(ctx, 0, 640, 0.55, true)
+  shade(ctx, 900, 1150, 0.45, false)
+  ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'left'
+
+  // logo numa aba preta no canto
+  const lw = 290, lh = lw * logo.height / logo.width
+  ctx.fillStyle = '#000'; ctx.fillRect(W - 330, 0, 330, lh + 36)
+  ctx.fillStyle = GOLD; ctx.fillRect(W - 330, lh + 36, 330, 4)
+  ctx.drawImage(logo, W - 310, 18, lw, lh)
+
+  // bloco do título, inclinado
+  ctx.save()
+  ctx.translate(30, 150); ctx.rotate(-6 * Math.PI / 180)
+  let y = 0
+  if (v.year) {
+    ctx.font = font(96); const tw = ctx.measureText(String(v.year)).width
+    brush(ctx, 0, y, tw + 30, 92, 3)
+    ctx.fillStyle = '#111'; ctx.fillText(String(v.year), 42, y + 80)
+    y += 96
+  }
+  for (const line of [v.make, v.model].filter(Boolean)) {
+    const t = String(line).toUpperCase()
+    fitFont(ctx, t, 780, 132)
+    outlined(ctx, t, 12, y + 112, '#fff', 7)
+    y += 120
+  }
+  if (v.trim) {
+    const t = String(v.trim).toUpperCase()
+    fitFont(ctx, t, 780, 64)
+    outlined(ctx, t, 14, y + 56, GOLD, 5)
+  }
+  ctx.restore()
+
+  // preço
   const price = carPrice(v)
   if (price) {
-    // etiqueta dourada com o preço, no canto de cima da foto
-    ctx.font = '800 46px Inter, Arial, sans-serif'
-    const pw = ctx.measureText(price).width + 64
-    ctx.fillStyle = GOLD; ctx.fillRect(W - pw - 40, 180, pw, 78)
-    ctx.fillStyle = '#111'; ctx.textAlign = 'center'; ctx.fillText(price, W - 40 - pw / 2, 236)
+    ctx.save()
+    ctx.font = font(128); const tw = ctx.measureText(price).width
+    const bw = tw + 40, bh = 118
+    ctx.translate(W - bw - 80, 1150 - bh - 40); ctx.rotate(-5 * Math.PI / 180)
+    brush(ctx, 0, 0, bw, bh, 9)
+    ctx.fillStyle = '#111'; ctx.fillText(price, 50, bh - 18)
+    ctx.restore()
   }
-  ctx.fillStyle = GOLD; ctx.fillRect(0, H - 70, W, 70)
-  ctx.fillStyle = '#111'; ctx.font = '800 32px Inter, Arial, sans-serif'
-  ctx.fillText(`CALL / WHATSAPP ${phone || ''}`.trim(), W / 2, H - 24)
+
+  // barra de informações
+  const y0 = 1160, bh = 130
+  ctx.fillStyle = 'rgba(0,0,0,0.88)'; ctx.fillRect(0, y0, W, bh)
+  ctx.fillStyle = GOLD; ctx.fillRect(0, y0, W, 4)
+  const facts = coverFacts(v), cw = Math.floor(W / facts.length)
+  facts.forEach((f, i) => {
+    const x0 = i * cw
+    if (i) { ctx.fillStyle = GOLD; ctx.fillRect(x0, y0 + 30, 3, bh - 60) }
+    fitFont(ctx, f.a, cw - 100, 30); const aw = ctx.measureText(f.a).width
+    ctx.font = font(22, 500); const bw = ctx.measureText(f.b).width
+    const tw = 54 + 12 + Math.max(aw, bw)
+    const sx = x0 + Math.max(8, Math.round((cw - tw) / 2))
+    // ícone (traço branco)
+    ctx.save(); ctx.translate(sx, y0 + (bh - 54) / 2); ctx.scale(54 / 24, 54 / 24)
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.9; ctx.lineCap = 'round'; ctx.lineJoin = 'round'
+    ctx.stroke(new Path2D(ICONS[f.icon])); ctx.restore()
+    fitFont(ctx, f.a, cw - 100, 30); ctx.fillStyle = '#fff'; ctx.fillText(f.a, sx + 66, y0 + 56)
+    ctx.font = font(22, 500); ctx.fillStyle = GOLD; ctx.fillText(f.b, sx + 66, y0 + 92)
+  })
+  ctx.fillStyle = GOLD; ctx.fillRect(0, H - 60, W, 60)
+  ctx.fillStyle = '#111'; ctx.font = font(30); ctx.textAlign = 'center'
+  ctx.fillText(`CALL / WHATSAPP ${phone || ''}`.trim(), W / 2, H - 19)
+  ctx.textAlign = 'left'
   return c
 }
 function photoSlide(photo, logo, n, total) {

@@ -23,12 +23,16 @@ const color = (r, g, b, a = 255) => Image.rgbaToColor(r, g, b, a)
 // ---------------------------------------------------------------- artes
 // @render-start
 let assets
+const ICON_NAMES = ['miles', 'title', 'trans', 'money']
 async function loadAssets(fetchBytes) {
   if (!assets) {
-    const [logo, a800, a500, meta] = await Promise.all([fetchBytes(`${ASSETS}/logo.png`), fetchBytes(`${ASSETS}/font-800.png`),
-      fetchBytes(`${ASSETS}/font-500.png`), fetchBytes(`${ASSETS}/font.json`)])
+    const [logo, a800, a500, meta, ...ic] = await Promise.all([fetchBytes(`${ASSETS}/logo.png`), fetchBytes(`${ASSETS}/font-800.png`),
+      fetchBytes(`${ASSETS}/font-500.png`), fetchBytes(`${ASSETS}/font.json`), ...ICON_NAMES.map((n) => fetchBytes(`${ASSETS}/icon-${n}.png`))])
     const m = JSON.parse(new TextDecoder().decode(meta))
+    const icons = {}
+    for (let i = 0; i < ICON_NAMES.length; i++) icons[ICON_NAMES[i]] = await Image.decode(ic[i])
     assets = {
+      icons,
       logo: await Image.decode(logo),
       f800: { atlas: await Image.decode(a800), ...m['800'], size: m.size, cache: {} },
       f500: { atlas: await Image.decode(a500), ...m['500'], size: m.size, cache: {} },
@@ -82,25 +86,138 @@ function center(img, part, y) { img.composite(part, Math.round((img.width - part
 const carTitle = (v) => [v.year, v.make, v.model].filter(Boolean).join(' ')
 const fmtMiles = (v) => (v.odometer ? `${new Intl.NumberFormat('en-US').format(v.odometer)} miles` : '')
 
+// ---- primeira arte: estilo anúncio de concessionária ----
+// Faixa dourada com bordas de pincel (mesmo desenho no sistema e no servidor)
+const noise = (n) => { const x = Math.sin(n * 12.9898) * 43758.5453; return x - Math.floor(x) }
+function brush(w, h, rgba, seed = 1) {
+  const img = new Image(w + 60, h)
+  const [r, g, b] = Image.colorToRGBA(rgba), bm = img.bitmap, IW = img.width
+  for (let y = 0; y < h; y++) {
+    const l = Math.round(6 + noise(y + seed) * 24 + (noise(y * 3 + seed) > 0.85 ? 14 : 0))
+    const rr = Math.round(w + 54 - noise(y * 7 + seed * 5) * 24 - (noise(y * 5 + seed) > 0.85 ? 16 : 0))
+    for (let x = Math.max(0, l); x < Math.min(IW, rr); x++) { const i = (y * IW + x) * 4; bm[i] = r; bm[i + 1] = g; bm[i + 2] = b; bm[i + 3] = 255 }
+  }
+  return img
+}
+// Texto com contorno preto grosso
+async function outlined(f, size, str, rgba, maxW, stroke) {
+  const t = await text(f, size, str, rgba, maxW)
+  const k = await text(f, size, str, color(0, 0, 0), maxW)
+  const out = new Image(t.width + stroke * 2, t.height + stroke * 2)
+  for (let a = 0; a < 16; a++) {
+    const ang = (a / 16) * Math.PI * 2
+    out.composite(k, Math.round(stroke + Math.cos(ang) * stroke), Math.round(stroke + Math.sin(ang) * stroke))
+  }
+  out.composite(k, stroke, stroke * 2) // sombra
+  out.composite(t, stroke, stroke)
+  return out
+}
+// Escurece uma faixa (alpha 0..1), para o texto aparecer em qualquer foto
+function shade(img, y0, y1, max, fromTop) {
+  const bm = img.bitmap, IW = img.width
+  for (let y = Math.max(0, y0); y < Math.min(img.height, y1); y++) {
+    let t = (y - y0) / (y1 - y0); t = fromTop ? 1 - t : t
+    const k = 1 - max * t
+    for (let x = 0; x < IW; x++) { const i = (y * IW + x) * 4; bm[i] *= k; bm[i + 1] *= k; bm[i + 2] *= k }
+  }
+}
+// Gira a imagem (graus, sentido anti-horário) sem cortar as bordas
+function rotateImg(src, deg) {
+  const a = (deg * Math.PI) / 180, cos = Math.cos(a), sin = Math.sin(a)
+  const w = src.width, h = src.height
+  const W2 = Math.ceil(Math.abs(w * cos) + Math.abs(h * sin)), H2 = Math.ceil(Math.abs(w * sin) + Math.abs(h * cos))
+  const out = new Image(W2, H2), sb = src.bitmap, ob = out.bitmap
+  const cx = w / 2, cy = h / 2, ox = W2 / 2, oy = H2 / 2
+  for (let y = 0; y < H2; y++) {
+    for (let x = 0; x < W2; x++) {
+      const dx = x - ox, dy = y - oy
+      const sx = dx * cos - dy * sin + cx, sy = dx * sin + dy * cos + cy
+      const x0 = Math.floor(sx), y0 = Math.floor(sy)
+      if (x0 < 0 || y0 < 0 || x0 >= w - 1 || y0 >= h - 1) continue
+      const fx = sx - x0, fy = sy - y0, o = (y * W2 + x) * 4
+      const i00 = (y0 * w + x0) * 4, i10 = i00 + 4, i01 = i00 + w * 4, i11 = i01 + 4
+      const w00 = (1 - fx) * (1 - fy) * sb[i00 + 3], w10 = fx * (1 - fy) * sb[i10 + 3], w01 = (1 - fx) * fy * sb[i01 + 3], w11 = fx * fy * sb[i11 + 3]
+      const al = w00 + w10 + w01 + w11
+      if (al <= 0) continue
+      for (let c = 0; c < 3; c++) ob[o + c] = (sb[i00 + c] * w00 + sb[i10 + c] * w10 + sb[i01 + c] * w01 + sb[i11 + c] * w11) / al
+      ob[o + 3] = al
+    }
+  }
+  return out
+}
+const money = (p) => `$${new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 }).format(p)}`
+const TRANS_SHORT = { automatic: 'AUTOMATIC', cvt: 'AUTOMATIC', dual_clutch: 'AUTOMATIC', manual: 'MANUAL' }
+const TITLE_SHORT = { clean: 'CLEAN', rebuilt: 'REBUILT', salvage: 'SALVAGE' }
+function coverFacts(v) {
+  return [
+    v.odometer ? { icon: 'miles', a: new Intl.NumberFormat('en-US').format(v.odometer), b: 'MILES' } : null,
+    TITLE_SHORT[v.title_status] ? { icon: 'title', a: TITLE_SHORT[v.title_status], b: 'TITLE' } : null,
+    TRANS_SHORT[v.transmission] ? { icon: 'trans', a: TRANS_SHORT[v.transmission], b: 'TRANSMISSION' } : null,
+    { icon: 'money', a: 'IN-HOUSE', b: 'FINANCING' },
+  ].filter(Boolean)
+}
 async function coverSlide(photo, A, v, phone) {
-  const img = new Image(W, H).fill(color(0, 0, 0))
-  img.composite(coverImg(photo, W, 900), 0, 150)
-  fade(img, 150, 330, false); fade(img, 860, 1050, true)
-  const logo = fitWidth(A.logo, 480); center(img, logo, 34)
-  center(img, await text(A.f800, 30, 'JUST ARRIVED', color(...GOLD)), 1072)
-  center(img, await text(A.f800, 84, carTitle(v), color(255, 255, 255), 980), 1112)
-  const sub = [v.trim, fmtMiles(v)].filter(Boolean).join('  ·  ')
-  if (sub) center(img, await text(A.f500, 36, sub, color(201, 201, 197), 980), 1210)
+  const img = coverImg(photo, W, H)
+  shade(img, 0, 640, 0.55, true)
+  shade(img, 900, 1150, 0.45, false)
+  // logo no canto, numa aba preta
+  const lg = fitWidth(A.logo, 290)
+  rect(img, W - 330, 0, 330, lg.height + 36, color(0, 0, 0))
+  rect(img, W - 330, lg.height + 36, 330, 4, color(...GOLD))
+  img.composite(lg, W - 310, 18)
+
+  // bloco do título, inclinado
+  const block = new Image(900, 720)
+  let y = 0
+  if (v.year) {
+    const t = await text(A.f800, 96, String(v.year), color(17, 17, 17))
+    const br = brush(t.width + 30, Math.round(t.height * 0.8), color(...GOLD), 3)
+    block.composite(br, 0, 6)
+    block.composite(t, 42, Math.round(6 + (br.height - t.height) / 2))
+    y = br.height + 4
+  }
+  for (const line of [v.make, v.model].filter(Boolean)) {
+    const t = await outlined(A.f800, 132, String(line).toUpperCase(), color(255, 255, 255), 780, 7)
+    block.composite(t, 6, y - 18)
+    y += Math.round(t.height * 0.74)
+  }
+  if (v.trim) {
+    const t = await outlined(A.f800, 64, String(v.trim).toUpperCase(), color(...GOLD), 780, 5)
+    block.composite(t, 10, y - 6)
+  }
+  img.composite(rotateImg(block, 6), -20, 40)
+
+  // preço
   const p = Number(v.price)
   if (p > 0) {
-    // etiqueta dourada com o preço, no canto de cima da foto
-    const t = await text(A.f800, 46, `$${new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 }).format(p)}`, color(17, 17, 17))
-    const pw = t.width + 64
-    rect(img, W - pw - 40, 180, pw, 78, color(...GOLD))
-    img.composite(t, W - 40 - pw + 32, 180 + Math.round((78 - t.height) / 2))
+    const t = await text(A.f800, 128, money(p), color(17, 17, 17))
+    const br = brush(t.width + 40, Math.round(t.height * 0.78), color(...GOLD), 9)
+    const pb = new Image(br.width, br.height)
+    pb.composite(br, 0, 0)
+    pb.composite(t, 50, Math.round((br.height - t.height) / 2) + 2)
+    const r = rotateImg(pb, 5)
+    img.composite(r, W - r.width - 10, 1150 - r.height - 6)
   }
-  rect(img, 0, H - 70, W, 70, color(...GOLD))
-  center(img, await text(A.f800, 32, `CALL / WHATSAPP ${phone || ''}`.trim(), color(17, 17, 17)), H - 56)
+
+  // barra de informações
+  const y0 = 1160, bh = 130
+  rect(img, 0, y0, W, bh, color(0, 0, 0, 225))
+  rect(img, 0, y0, W, 4, color(...GOLD))
+  const facts = coverFacts(v), cw = Math.floor(W / facts.length)
+  for (let i = 0; i < facts.length; i++) {
+    const f = facts[i], x0 = i * cw
+    if (i) rect(img, x0, y0 + 30, 3, bh - 60, color(...GOLD))
+    const ic = A.icons[f.icon].clone().resize(54, 54)
+    const a = await text(A.f800, 30, f.a, color(255, 255, 255), cw - 100)
+    const b = await text(A.f500, 22, f.b, color(...GOLD), cw - 100)
+    const tw = 54 + 12 + Math.max(a.width, b.width)
+    const sx = x0 + Math.max(8, Math.round((cw - tw) / 2))
+    img.composite(ic, sx, y0 + Math.round((bh - 54) / 2))
+    img.composite(a, sx + 66, y0 + 24)
+    img.composite(b, sx + 66, y0 + 66)
+  }
+  rect(img, 0, H - 60, W, 60, color(...GOLD))
+  center(img, await text(A.f800, 30, `CALL / WHATSAPP ${phone || ''}`.trim(), color(17, 17, 17)), H - 50)
   return img
 }
 async function photoSlide(photo, A, n, total) {
